@@ -261,13 +261,10 @@ class AimsunKernelNetwork(BaseKernelNetwork):
         # delete the json file that was used to read the network data
         cur_dir = os.path.join(config.PROJECT_PATH,
                                'flow/core/kernel/network')
-        data_file_path = os.path.join(cur_dir, 'data_%s.json' % self.sim_params.port)
-        if os.path.exists(data_file_path):
-            os.remove(data_file_path)
-
-        template_file_path = '%s_%s' % (self.network.net_params.template, self.sim_params.port)
-        if os.path.exists(template_file_path):
-            os.remove(template_file_path)
+        os.remove(os.path.join(cur_dir, 'data_%s.json' % self.sim_params.port))
+        if self.network.net_params.template is not None:
+            os.remove('%s_%s' % (self.network.net_params.template,
+                                 self.sim_params.port))
 
     ###########################################################################
     #                        State acquisition methods                        #
