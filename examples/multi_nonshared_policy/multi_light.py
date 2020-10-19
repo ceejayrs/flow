@@ -355,8 +355,7 @@ class MultiLightEnv(MultiEnv):
         #        self.env_params.horizon)  # or crash
 
         done = {key: key in states.key()}
-        if (self.time_counter >= self.env_params.warmup_steps +
-                self.env_params.horizon)  # or crash
+        if (self.time_counter >= self.env_params.warmup_steps + self.env_params.horizon)  # or crash
             done['__all__'] = True
         else:
             done['__all__'] = False
