@@ -294,7 +294,7 @@ class MultiLightEnv(MultiEnv):
             obs.update({str(node): state})
             #ma_state[str(node)] = state
 
-        print(obs)
+        print(type(obs))
         return obs
 
     def compute_reward(self, rl_actions, **kwargs):
@@ -343,6 +343,7 @@ class MultiLightEnv(MultiEnv):
         # collect information of the state of the network based on the
         # environment class used
         self.state = np.asarray(states).T
+        print(self.state)
 
         # collect observation new state associated with action
         next_observation = np.copy(states)
@@ -355,6 +356,7 @@ class MultiLightEnv(MultiEnv):
 
         # compute the info for each agent
         infos = {key: {} for key in states.keys()}
+        print(f'infos {infos}')
 
         # compute the reward
         reward = self.compute_reward(rl_actions)
