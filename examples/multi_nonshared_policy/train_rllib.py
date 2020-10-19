@@ -97,7 +97,7 @@ def n2_action():
 #    space = base_action(4) 
 #    return Tuple(*space)  # 5 (probabilities)
 
-POLICY_GRAPHS = {'3329': gen_policy(Tuple(7*[Discrete(100,)])),
+POLICY_GRAPHS = {'3329': gen_policy(Tuple(7*[Discrete(100,)]+ (2)*[Discrete(1)])),
                  '3344': gen_policy(Tuple(9*[Discrete(100,)]))}
                  #'n3': gen_policy(n3_action),
                  #'n4': gen_policy(n4_action),

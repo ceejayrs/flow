@@ -489,7 +489,7 @@ class Env(gym.Env, metaclass=ABCMeta):
                 print("Error during start: {}".format(traceback.format_exc()))
 
         # do any additional resetting of the vehicle class needed
-        self.k.vehicle.reset()
+        # self.k.vehicle.reset()
 
         # reintroduce the initial vehicles to the network
         for veh_id in self.initial_ids:
