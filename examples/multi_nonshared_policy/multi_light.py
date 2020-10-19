@@ -351,15 +351,27 @@ class MultiLightEnv(MultiEnv):
         # test if the environment should terminate due to a collision or the
         # time horizon being met
         
-        done = (self.time_counter >= self.env_params.warmup_steps +
+        #done = (self.time_counter >= self.env_params.warmup_steps +
+        #        self.env_params.horizon)  # or crash
+
+        done = {key: key in states.key()}
+        if (self.time_counter >= self.env_params.warmup_steps +
                 self.env_params.horizon)  # or crash
+            done['__all__'] = True
+        else:
+            done['__all__'] = False
 
         # compute the info for each agent
         infos = {key: {} for key in states.keys()}
-        print(f'infos {infos}')
+        print(f'infos {infos}, done {done}')
 
         # compute the reward
         reward = self.compute_reward(rl_actions)
+
+        #for rl_id in self.target_nodes:
+        #    done[rl_id] = True
+        #    reward[rl_id] = 0
+        #    states[rl_id] = {}
 
         return next_observation, reward, done, infos
 
