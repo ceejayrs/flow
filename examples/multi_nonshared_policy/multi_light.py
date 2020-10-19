@@ -354,8 +354,8 @@ class MultiLightEnv(MultiEnv):
         #done = (self.time_counter >= self.env_params.warmup_steps +
         #        self.env_params.horizon)  # or crash
 
-        done = {key: key in states.key()}
-        if (self.time_counter >= self.env_params.warmup_steps + self.env_params.horizon)  # or crash
+        done = {key: {} for key in states.key()}
+        if (self.time_counter >= self.env_params.warmup_steps + self.env_params.horizon):  # or crash
             done['__all__'] = True
         else:
             done['__all__'] = False
@@ -367,8 +367,8 @@ class MultiLightEnv(MultiEnv):
         # compute the reward
         reward = self.compute_reward(rl_actions)
 
-        #for rl_id in self.target_nodes:
-        #    done[rl_id] = True
+        for rl_id in self.target_nodes:
+            done[rl_id] = True
         #    reward[rl_id] = 0
         #    states[rl_id] = {}
 
