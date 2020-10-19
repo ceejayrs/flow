@@ -171,7 +171,7 @@ class MultiLightEnv(MultiEnv):
             if node_id == 3329:
                 def_actions = np.array(rl_action).flatten()
                 actions = rescale_bar(def_actions,10,90)
-                barrier = actions[-1]/100
+                barrier = actions[-3]/100
                 sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
                 action_rings = [[actions[0:2],actions[2:4]],[[],actions[4:6]]]
                 for i in range(len(action_rings)): #2
@@ -342,35 +342,31 @@ class MultiLightEnv(MultiEnv):
 
         # collect information of the state of the network based on the
         # environment class used
-        self.state = np.asarray(states).T
-        print(self.state)
+        self.state = states #np.asarray(states).T
 
         # collect observation new state associated with action
-        next_observation = np.copy(states)
+        next_observation = states #np.copy(states)
 
         # test if the environment should terminate due to a collision or the
         # time horizon being met
-        
-        #done = (self.time_counter >= self.env_params.warmup_steps +
-        #        self.env_params.horizon)  # or crash
 
-        done = {key: {} for key in states.key()}
+        done = {key: False for key in states.keys()}
         if (self.time_counter >= self.env_params.warmup_steps + self.env_params.horizon):  # or crash
             done['__all__'] = True
+            for rl_id in self.target_nodes:
+                done[rl_id] = True
+                #    reward[rl_id] = 0
+                #    states[rl_id] = {}
         else:
             done['__all__'] = False
 
         # compute the info for each agent
         infos = {key: {} for key in states.keys()}
-        print(f'infos {infos}, done {done}')
 
         # compute the reward
         reward = self.compute_reward(rl_actions)
 
-        for rl_id in self.target_nodes:
-            done[rl_id] = True
-        #    reward[rl_id] = 0
-        #    states[rl_id] = {}
+        print(f'infos {infos}, done {done}')
 
         return next_observation, reward, done, infos
 
