@@ -241,6 +241,7 @@ class MultiLightEnv(MultiEnv):
             
 
             rescaled_actions = [phase for ring in action_rings for pair in ring for phase in pair]
+            print(node_id, barrier, action_rings, rescaled_actions)
             for phase, action, maxd in zip(phase_list, rescaled_actions, maxd_list):
                 if action:
                     if action > maxd:
