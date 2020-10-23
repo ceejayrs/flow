@@ -16,7 +16,7 @@ from flow.utils.rllib import get_rllib_pkl
 
 
 def reload_checkpoint(result_dir, checkpoint_num, gen_emission=False, version=0, render=False):
-    global multiagent
+    global multiagent, use_lstm, policy_map_fn, state_init
     config = get_rllib_config(result_dir)
 
     if config.get('multiagent', {}).get('policies', None):
