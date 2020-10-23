@@ -130,7 +130,7 @@ def replay(env, env_params, agent, rets, ignore_policy):
             break
     if multiagent:
         for key in rets.keys():
-        rets[key].append(ret[key])
+            rets[key].append(ret[key])
     else:
         rets.append(ret)
 
