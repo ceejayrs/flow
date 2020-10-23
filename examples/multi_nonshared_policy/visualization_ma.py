@@ -12,6 +12,7 @@ from ray.tune.registry import register_env
 from flow.utils.registry import make_create_env
 from flow.utils.rllib import get_flow_params
 from flow.utils.rllib import get_rllib_config
+from flow.utils.rllib import get_rllib_pkl
 
 
 def reload_checkpoint(result_dir, checkpoint_num, gen_emission=False, version=0, render=False):
