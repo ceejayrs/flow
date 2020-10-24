@@ -782,7 +782,10 @@ def AAPIManage(time, timeSta, timeTrans, acycle):
         # tcp/ip connection from the aimsun process
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server_socket.bind(('localhost', PORT))
+        try:
+            server_socket.bind(('localhost', PORT))
+        except:
+            print("We found an error!!")
 
         # connect to the Flow instance
         server_socket.listen(10)
