@@ -128,8 +128,8 @@ def replay(env, env_params, agent, rets, ignore_policy):
                 ret[policy_map_fn(actor)][0] += rew
         else:
             ret += reward
-        if multiagent and done['__all__']:
-            break
+        #if multiagent and done['__all__']:
+        #    break
     if multiagent:
         for key in rets.keys():
             rets[key].append(ret[key])
@@ -167,7 +167,7 @@ if __name__ == "__main__":
 
         env, env_params, agent, rets = reload_checkpoint(experiment_dir, latest_checkpoint, version=0, render=True)
         total_reward = replay(env, env_params, agent, rets, ignore_policy)
-        print(f'Total reward: {total_reward}')
+        #print(f'Total reward: {total_reward}')
     else:
         print('No experiment directory passed in as an argument.')
         experiment_dir = "/Users/umang/ray_results/single_light"
