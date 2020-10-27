@@ -77,7 +77,7 @@ if writeFlag == True:
 
 def get_replication_name(node_id): #cj28
     node_id = node_id
-    rep_name = aapi.ANGConnGetReplicationId()
+    rep_name = aimsun_api.ANGConnGetReplicationId()
 
     replications = model.getCatalog().getObjectsByType(model.getType("GKReplication"))
     for replication in replications.values():
@@ -813,20 +813,16 @@ def AAPIPostManage(time, timeSta, timeTrans, acycle):
     global time_consumed, occurence, phaseUtil, green_phases
     if writeFlag:
         if time == 900:
-            print('time')
             for node_id in target_nodes:
                 action_list = []
                 gutil = gUtil_at_interval(node_id, time_consumed, occurence, timeSta)
                 util_list = [gutil]
-                print('util_list', gUtil_at_interval)
                 rep_name, rep_seed = get_replication_name(node_id)
-                print(rep_name, repseed)
                 ep = Export_Params(rep_name,node_id)
                 for phase in green_phases[node_id]:
                     normalDuration, _, _ = get_duration_phase(node_id, phase, timeSta)
                     action_list.append(normalDuration)
                 delay = aimsun_api.AKIEstGetPartialStatisticsNodeApproachDelay(node_id)
-                print('delay',delay)
                 ep.export_delay_action(node_id, delay, action_list, util_list, time, timeSta)
 
         time_consumed = dict.fromkeys(target_nodes,0)
