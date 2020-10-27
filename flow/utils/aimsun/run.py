@@ -19,9 +19,9 @@ from PyANGKernel import *  # noqa
 import AAPI as aimsun_api  # noqa
 from aimsun_props import Aimsun_Params, Export_Params
 
-ap = Aimsun_Params('/home/damian/flow/flow/utils/aimsun/aimsun_props.csv')
+ap = Aimsun_Params('/home/damian/ma_flow/flow/flow/utils/aimsun/aimsun_props.csv')
 ## Export files
-writeFlag = False
+writeFlag = True
 
 model = GKSystem.getSystem().getActiveModel()
 PORT = int(model.getAuthor())
@@ -810,19 +810,20 @@ def AAPIManage(time, timeSta, timeTrans, acycle):
 
 def AAPIPostManage(time, timeSta, timeTrans, acycle):
     """Execute commands after an Aimsun simulation step."""
-    delta = 0.8/2
-    if ((time % 900) > -delta and (time % 900) < delta) or ((time % 900) > 900-delta and (time % 900) < 900+delta)
-        if writeFlag == True:
-            action_list = []
-            gutil = gUtil_at_interval(node_id, time_consumed, occurence, timeSta)
-            util_list = [gutil]
-            rep_name, rep_seed = get_replication_name(node_id)
-            ep = Export_Params(rep_name,node_id)
-            for phase in green_phases[node_id]:
-                normalDuration, _, _ = get_duration_phase(node_id, phase, timeSta)
-                action_list.append(normalDuration)
-            delay = aapi.AKIEstGetPartialStatisticsNodeApproachDelay(node_id)
-            ep.export_delay_action(node_id, delay, action_list, util_list, time, timeSta)
+    global time_consumed, occurence, phaseUtil
+    if writeFlag:
+        if time == 900:
+            for node_id in target_nodes:
+                action_list = []
+                gutil = gUtil_at_interval(node_id, time_consumed, occurence, timeSta)
+                util_list = [gutil]
+                rep_name, rep_seed = get_replication_name(node_id)
+                ep = Export_Params(rep_name,node_id)
+                for phase in green_phases[node_id]:
+                    normalDuration, _, _ = get_duration_phase(node_id, phase, timeSta)
+                    action_list.append(normalDuration)
+                delay = aapi.AKIEstGetPartialStatisticsNodeApproachDelay(node_id)
+                ep.export_delay_action(node_id, delay, action_list, util_list, time, timeSta)
 
         time_consumed = dict.fromkeys(target_nodes,0)
         occurence = dict.fromkeys(target_nodes,0)
