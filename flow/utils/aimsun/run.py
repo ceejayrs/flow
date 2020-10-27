@@ -37,22 +37,6 @@ time_consumed = {}
 occurence = {}
 phaseUtil = {}
 
-import socket, errno
-
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-try:
-    s.bind(("127.0.0.1", 5555))
-except socket.error as e:
-    if e.errno == errno.EADDRINUSE:
-        print("Port is already in use")
-    else:
-        # something else raised the socket.error exception
-        print(e)
-
-s.close()
-
-
 #green_phases = dict.fromkeys(target_nodes)
 #starting_phases = dict.fromkeys(target_nodes)
 #time_consumed = dict.fromkeys(target_nodes,0)
@@ -70,6 +54,8 @@ for node_id in target_nodes:
     green_phases[node_id] = green_phase_list
     time_consumed[node_id] = dict.fromkeys(green_phase_list,0)
     occurence[node_id] = dict.fromkeys(green_phase_list,0) # dictionary of node and their phases {node_id:None,...}
+
+print("hey")
 
 def get_replication_name(node_id): #cj28
     node_id = node_id
@@ -807,6 +793,7 @@ def AAPIManage(time, timeSta, timeTrans, acycle):
 def AAPIPostManage(time, timeSta, timeTrans, acycle):
     """Execute commands after an Aimsun simulation step."""
     global time_consumed, occurence, phaseUtil, green_phases
+    print("why")
     if writeFlag:
         if time == 900 and time != 0:
             for node_id in target_nodes:
