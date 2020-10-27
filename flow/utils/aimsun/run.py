@@ -55,8 +55,6 @@ for node_id in target_nodes:
     time_consumed[node_id] = dict.fromkeys(green_phase_list,0)
     occurence[node_id] = dict.fromkeys(green_phase_list,0) # dictionary of node and their phases {node_id:None,...}
 
-print("hey")
-
 def get_replication_name(node_id): #cj28
     node_id = node_id
     rep_name = aimsun_api.ANGConnGetReplicationId()
@@ -792,10 +790,11 @@ def AAPIManage(time, timeSta, timeTrans, acycle):
 
 def AAPIPostManage(time, timeSta, timeTrans, acycle):
     """Execute commands after an Aimsun simulation step."""
-    global time_consumed, occurence, phaseUtil, green_phases
-    print("why")
+    global time_consumed, occurence, phaseUtil, green_phases, target_nodes
     if writeFlag:
+        print('yas')
         if time == 900 and time != 0:
+            print(time)
             for node_id in target_nodes:
                 action_list = []
                 gutil = gUtil_at_interval(node_id, time_consumed, occurence, timeSta)
