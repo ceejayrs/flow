@@ -21,7 +21,6 @@ from aimsun_props import Aimsun_Params, Export_Params
 
 ap = Aimsun_Params('/home/damian/ma_flow/flow/flow/utils/aimsun/aimsun_props.csv')
 ## Export files
-writeFlag = True
 
 model = GKSystem.getSystem().getActiveModel()
 PORT = int(model.getAuthor())
@@ -792,9 +791,8 @@ def AAPIManage(time, timeSta, timeTrans, acycle):
 def AAPIPostManage(time, timeSta, timeTrans, acycle):
     """Execute commands after an Aimsun simulation step."""
     global time_consumed, occurence, phaseUtil, green_phases, target_nodes
-    time = time
     if time % 900 == 0 and time != 0:
-        if writeFlag == True:
+        if True:
             print(time)
             for node_id in target_nodes:
                 action_list = []
