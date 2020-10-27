@@ -812,17 +812,21 @@ def AAPIPostManage(time, timeSta, timeTrans, acycle):
     """Execute commands after an Aimsun simulation step."""
     global time_consumed, occurence, phaseUtil, green_phases
     if writeFlag:
-        if time == 900:
+        if time == 900 and time != 0:
             for node_id in target_nodes:
                 action_list = []
                 gutil = gUtil_at_interval(node_id, time_consumed, occurence, timeSta)
+                print(gutil)
                 util_list = [gutil]
                 rep_name, rep_seed = get_replication_name(node_id)
+                print(rep_name, rep_seed)
                 ep = Export_Params(rep_name,node_id)
                 for phase in green_phases[node_id]:
+                    print(phase)
                     normalDuration, _, _ = get_duration_phase(node_id, phase, timeSta)
                     action_list.append(normalDuration)
                 delay = aimsun_api.AKIEstGetPartialStatisticsNodeApproachDelay(node_id)
+                print(delay)
                 ep.export_delay_action(node_id, delay, action_list, util_list, time, timeSta)
 
         time_consumed = dict.fromkeys(target_nodes,0)
