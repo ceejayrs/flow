@@ -806,7 +806,6 @@ def AAPIPostManage(time, timeSta, timeTrans, acycle):
         occurence = dict.fromkeys(target_nodes,0)
         phaseUtil = dict.fromkeys(target_nodes,0)
 
-
         if writeFlag == True:
             for node_id in target_nodes:
                 action_list = []

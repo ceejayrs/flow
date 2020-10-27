@@ -128,8 +128,8 @@ def replay(env, env_params, agent, rets, ignore_policy):
                 ret[policy_map_fn(actor)][0] += rew
         else:
             ret += reward
-        if multiagent and done['__all__']:
-            break
+        #if multiagent and done['__all__']:
+        #    break
     if multiagent:
         for key in rets.keys():
             rets[key].append(ret[key])
