@@ -19,8 +19,9 @@ from PyANGKernel import *  # noqa
 import AAPI as aimsun_api  # noqa
 from aimsun_props import Aimsun_Params, Export_Params
 
-ap = Aimsun_Params('/home/damian/ma_flow/flow/flow/utils/aimsun/aimsun_props.csv')
+ap = Aimsun_Params('/home/damian/flow/flow/utils/aimsun/aimsun_props.csv')
 ## Export files
+writeFlag = False
 
 model = GKSystem.getSystem().getActiveModel()
 PORT = int(model.getAuthor())
@@ -36,7 +37,22 @@ time_consumed = {}
 occurence = {}
 phaseUtil = {}
 
-wF = True
+import socket, errno
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+try:
+    s.bind(("127.0.0.1", 5555))
+except socket.error as e:
+    if e.errno == errno.EADDRINUSE:
+        print("Port is already in use")
+    else:
+        # something else raised the socket.error exception
+        print(e)
+
+s.close()
+
+
 #green_phases = dict.fromkeys(target_nodes)
 #starting_phases = dict.fromkeys(target_nodes)
 #time_consumed = dict.fromkeys(target_nodes,0)
@@ -54,17 +70,10 @@ for node_id in target_nodes:
     green_phases[node_id] = green_phase_list
     time_consumed[node_id] = dict.fromkeys(green_phase_list,0)
     occurence[node_id] = dict.fromkeys(green_phase_list,0) # dictionary of node and their phases {node_id:None,...}
-    print('success')
 
-def get_replication_name(node_id): #cj28
-    node_id = node_id
+if writeFlag == True:
     rep_name = aimsun_api.ANGConnGetReplicationId()
-
-    replications = model.getCatalog().getObjectsByType(model.getType("GKReplication"))
-    for replication in replications.values():
-        rep_seed = replication.getRandomSeed()
-
-    return rep_name, rep_seed
+    export_params = Export_Params(rep_name, 3344)
 
 def get_duration_phase(node_id, phase, timeSta):
     normalDurationP = aimsun_api.doublep()
@@ -791,30 +800,18 @@ def AAPIManage(time, timeSta, timeTrans, acycle):
 
 def AAPIPostManage(time, timeSta, timeTrans, acycle):
     """Execute commands after an Aimsun simulation step."""
-    global time_consumed, occurence
-    time = time
-    if time % 900 == 0:
-        if wF:
-            print(time)
-            for node_id in target_nodes:
-                action_list = []
-                gutil = gUtil_at_interval(node_id, time_consumed, occurence, timeSta)
-                print(gutil)
-                util_list = [gutil]
-                rep_name, rep_seed = get_replication_name(node_id)
-                print(rep_name, rep_seed)
-                ep = Export_Params(rep_name,node_id)
-                for phase in green_phases[node_id]:
-                    print(phase)
-                    normalDuration, _, _ = get_duration_phase(node_id, phase, timeSta)
-                    action_list.append(normalDuration)
-                delay = aimsun_api.AKIEstGetPartialStatisticsNodeApproachDelay(node_id)
-                print(delay)
-                ep.export_delay_action(node_id, delay, action_list, util_list, time, timeSta)
-
+    delta = 0.8/2
+    if ((time % 900) > -delta and (time % 900) < delta) or ((time % 900) > 900-delta and (time % 900) < 900+delta):
         time_consumed = dict.fromkeys(target_nodes,0)
         occurence = dict.fromkeys(target_nodes,0)
         phaseUtil = dict.fromkeys(target_nodes,0)
+
+
+        if writeFlag == True:
+            for node_id in target_nodes:
+                action_list = []
+                delay = aimsun_api.AKIEstGetPartialStatisticsNodeApproachDelay(node_id)
+                export_params.export_delay_action(node_id, delay, action_list, phaseUtil[node_id], time, timeSta)
 
     return 0
 

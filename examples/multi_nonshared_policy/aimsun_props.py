@@ -60,6 +60,10 @@ class Aimsun_Params:
 class Export_Params:
     def __init__(self, rep_name, node_id):
         self.rep_name = str(rep_name) + '_' + str(node_id) + '.csv'
+        self.fieldnames = ['time', 'delay_time','action']
+        with open(self.rep_name,'a') as csvFile:
+            csv_writer = csv.writer(csvFile)
+            csv_writer.writerow([node_id])
 
     def export_delay_action(self, node_id, delay, action_list, util_list, time, timeSta):
         time = time
