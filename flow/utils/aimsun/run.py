@@ -791,9 +791,8 @@ def AAPIManage(time, timeSta, timeTrans, acycle):
 def AAPIPostManage(time, timeSta, timeTrans, acycle):
     """Execute commands after an Aimsun simulation step."""
     global time_consumed, occurence, phaseUtil, green_phases, target_nodes
-    if writeFlag:
-        print('yas')
-        if time == 900 and time != 0:
+    if time % 900 == 0 and time != 0:
+        if writeFlag == True:
             print(time)
             for node_id in target_nodes:
                 action_list = []
