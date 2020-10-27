@@ -71,10 +71,6 @@ for node_id in target_nodes:
     time_consumed[node_id] = dict.fromkeys(green_phase_list,0)
     occurence[node_id] = dict.fromkeys(green_phase_list,0) # dictionary of node and their phases {node_id:None,...}
 
-if writeFlag == True:
-    rep_name = aimsun_api.ANGConnGetReplicationId()
-    export_params = Export_Params(rep_name, 3344)
-
 def get_replication_name(node_id): #cj28
     node_id = node_id
     rep_name = aimsun_api.ANGConnGetReplicationId()
