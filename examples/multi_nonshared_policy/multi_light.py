@@ -368,7 +368,7 @@ class MultiLightEnv(MultiEnv):
         # compute the reward
         reward = self.compute_reward(rl_actions)
 
-        print(f'infos {infos}, done {done}')
+        #print(f'infos {infos}, done {done}')
 
         return next_observation, reward, done, infos
 
