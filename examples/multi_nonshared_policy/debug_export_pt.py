@@ -194,7 +194,7 @@ def AAPIPostManage(time, timeSta, timeTrans, acycle):
                 normalDuration, _, _ = get_duration_phase(node_id, phase, timeSta)
                 action_list.append(normalDuration)
             delay = aapi.AKIEstGetPartialStatisticsNodeApproachDelay(node_id)
-            ep.export_delay_action(node_id, delay, action_list, util_list, time, timeSta)
+            ep.export_delay_action(node_id, rep_seed, delay, action_list, util_list, time, timeSta)
 
     return 0
 
