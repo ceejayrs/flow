@@ -60,31 +60,43 @@ class Aimsun_Params:
 class Export_Params:
     def __init__(self, rep_name, node_id):
         self.rep_name = str(rep_name) + '_' + str(node_id) + '.csv'
+        self.fieldnames = ['time', 'node_id', 'delay_time','action']
+        with open(self.rep_name,'a') as csvFile:
+            csv_writer = csv.writer(csvFile)
+            csv_writer.writerow([node_id])
 
-    def export_delay_action(self, node_id, seed, delay, action_list, util_list, time, timeSta):
+    def export_delay_action(self, node_id, delay, action_list, util_list, r_queue, time, timeSta):
         time = time
         timeSta = timeSta
         ave_app_delay = delay
-        data_list = [seed,time,delay]
-        #data_list.append(time)
-        #data_list.append(delay)
-        
-        for action in action_list:
-            data_list.append(action)
+        data_list = [time, node_id, delay, r_queue]
 
         for util in util_list:
             data_list.append(util)
+        
+        for action in action_list:
+            data_list.append(action)
 
         with open(self.rep_name, 'a') as csvFile:
             csv_writer = csv.writer(csvFile)
             csv_writer.writerows([data_list,])
 
+
 ##test
 #print(get_green_phases(3344))
 #print('********************')
-#ap = Aimsun_Params('/home/cjrsantos/flow/examples/aimsun/single_light/aimsun_props.csv')
+#ap = Aimsun_Params('/home/cjrsantos/flow/flow/utils/aimsun/aimsun_props.csv')
 #print(ap.get_cp_cycle_dict(3369,8050315), print(type(ap.get_cp_cycle_dict(3369,8050315))))
 #print('********************')
 #print(get_sum_interphase_per_ring(3344), print(type(get_sum_interphase_per_ring(3344))))
 #print('********************')
 #max_d, max_p = ap.get_max_dict(3344,8050322)
+#target_nodes = [3344,3329,3369]
+#green_phases = dict.fromkeys(target_nodes)
+#starting_phases = dict.fromkeys(target_nodes)
+#
+#for node_id in target_nodes:
+#    green_phase_list = ap.get_green_phases(node_id)
+#    starting_phases_list = ap.get_start_phases(node_id)
+#    starting_phases[node_id] = starting_phases_list
+#print(starting_phases)

@@ -15,7 +15,7 @@ ADDITIONAL_ENV_PARAMS = {'target_nodes': [3329, 3344],
                          'detection_interval': (0, 15, 0),
                          'statistical_interval': (0, 15, 0),
                          'replication_list': ['Replication 8050297',  # 5-11
-                                              'Replication 8050315',  # 10-14
+                                              'Replication 8050315'  # 10-14
                                               'Replication 8050322'
                                               ]}  # 14-21
 # the replication list should be copied in load.py
@@ -25,12 +25,12 @@ RLLIB_N_ROLLOUTS = 3  # copy from train_rllib.py
 np.random.seed(1234567890)
 
 # read csv of Node Parameters
-ap = Aimsun_Params('/home/damian/flow/flow/utils/aimsun/aimsun_props.csv')
+ap = Aimsun_Params('/home/damian/ma_flow/flow/flow/utils/aimsun/aimsun_props.csv')
 
 def rescale_bar(array, NewMin, NewMax):
     rescaled_action = []
     OldMin = 0
-    OldMax = 70
+    OldMax = 80
     OldRange = (OldMax - OldMin)  
     NewRange = (NewMax - NewMin)
     for OldValue in array:
@@ -149,7 +149,7 @@ class MultiLightEnv(MultiEnv):
             #n3_action = rl_actions['n3']
             #n4_action = rl_actions['n4']
             #n5_action = rl_actions['n5']
-            print(rl_id, rl_action)
+            #print(rl_id, rl_action)
 
             node_id = int(rl_id)
             self.rep_name, _ = self.k.traffic_light.get_replication_name(3344)
@@ -241,7 +241,7 @@ class MultiLightEnv(MultiEnv):
             
 
             rescaled_actions = [phase for ring in action_rings for pair in ring for phase in pair]
-            print(node_id, barrier, action_rings, rescaled_actions)
+            #print(node_id, barrier, action_rings, rescaled_actions)
             for phase, action, maxd in zip(phase_list, rescaled_actions, maxd_list):
                 if action:
                     if action > maxd:
@@ -295,7 +295,7 @@ class MultiLightEnv(MultiEnv):
             obs.update({str(node): state})
             #ma_state[str(node)] = state
 
-        print(type(obs))
+        #print(type(obs))
         return obs
 
     def compute_reward(self, rl_actions, **kwargs):
@@ -367,7 +367,7 @@ class MultiLightEnv(MultiEnv):
         # compute the reward
         reward = self.compute_reward(rl_actions)
 
-        print(f'infos {infos}, done {done}')
+        #print(f'infos {infos}, done {done}')
 
         return next_observation, reward, done, infos
 

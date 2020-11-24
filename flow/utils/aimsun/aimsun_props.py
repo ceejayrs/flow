@@ -65,25 +65,22 @@ class Export_Params:
             csv_writer = csv.writer(csvFile)
             csv_writer.writerow([node_id])
 
-    def export_delay_action(self, node_id, delay, action_list, util_list, time, timeSta):
+    def export_delay_action(self, node_id, delay, action_list, util_list, r_queue, time, timeSta):
         time = time
         timeSta = timeSta
         ave_app_delay = delay
-        data_list = [time, node_id, delay]
-
-        
-        for action in action_list:
-            data_list.append(action)
+        data_list = [time, node_id, delay, r_queue]
 
         for util in util_list:
             data_list.append(util)
+        
+        for action in action_list:
+            data_list.append(action)
 
         with open(self.rep_name, 'a') as csvFile:
             csv_writer = csv.writer(csvFile)
             csv_writer.writerows([data_list,])
 
-    def export_actions(self, node_id):
-        pass
 
 ##test
 #print(get_green_phases(3344))

@@ -25,7 +25,7 @@ RLLIB_N_ROLLOUTS = 3  # copy from train_rllib.py
 np.random.seed(1234567890)
 
 # read csv of Node Parameters
-ap = Aimsun_Params('/home/cjrsantos/flow/flow/utils/aimsun/aimsun_props.csv')
+ap = Aimsun_Params('/home/damian/flow/flow/utils/aimsun/aimsun_props.csv')
 
 def rescale_bar(array, NewMin, NewMax):
     rescaled_action = []

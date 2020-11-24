@@ -19,7 +19,7 @@ from PyANGKernel import *  # noqa
 import AAPI as aimsun_api  # noqa
 from aimsun_props import Aimsun_Params, Export_Params
 
-ap = Aimsun_Params('/home/damian/flow/flow/utils/aimsun/aimsun_props.csv')
+ap = Aimsun_Params('/home/damian/ma_flow/flow/flow/utils/aimsun/aimsun_props.csv')
 ## Export files
 writeFlag = False
 
@@ -805,12 +805,6 @@ def AAPIPostManage(time, timeSta, timeTrans, acycle):
         time_consumed = dict.fromkeys(target_nodes,0)
         occurence = dict.fromkeys(target_nodes,0)
         phaseUtil = dict.fromkeys(target_nodes,0)
-
-        if writeFlag == True:
-            for node_id in target_nodes:
-                action_list = []
-                delay = aimsun_api.AKIEstGetPartialStatisticsNodeApproachDelay(node_id)
-                export_params.export_delay_action(node_id, delay, action_list, phaseUtil[node_id], time, timeSta)
 
     return 0
 

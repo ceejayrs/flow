@@ -4,12 +4,12 @@ import PyANGKernel as gk
 from collections import OrderedDict
 import random as r
 import sys
-sys.path.append('/home/cjrsantos/anaconda3/envs/aimsun_flow/lib/python2.7/site-packages')
+sys.path.append('/home/damian/anaconda3/envs/aimsun_flow/lib/python2.7/site-packages')
 import numpy as np
 
 from aimsun_props import Aimsun_Params, Export_Params
 
-ap = Aimsun_Params('/home/cjrsantos/flow/flow/utils/aimsun/aimsun_props.csv')
+ap = Aimsun_Params('/home/damian/flow/flow/utils/aimsun/aimsun_props.csv')
 ## Export files
 writeFlag = False
 

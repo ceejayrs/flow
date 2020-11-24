@@ -4,15 +4,15 @@ import csv
 import PyANGKernel as gk
 import PyANGConsole as cs
 from datetime import datetime
-sys.path.append('/home/cjrsantos/anaconda3/envs/aimsun_flow/lib/python2.7/site-packages')
+sys.path.append('/home/damian/anaconda3/envs/aimsun_flow/lib/python2.7/site-packages')
 import numpy as np
 from aimsun_props import Aimsun_Params, Export_Params
 
-ap = Aimsun_Params("/home/cjrsantos/flow/flow/utils/aimsun/aimsun_props.csv")
+ap = Aimsun_Params("/home/damian/ma_flow/flow/flow/utils/aimsun/aimsun_props.csv")
 green_phases = {}
 model = gk.GKSystem.getSystem().getActiveModel()
 
-target_nodes = [3329, 3344, 3370, 3341, 3369]
+target_nodes = [3329, 3344]
 
 start_time = [0]*2
 ut_time = [0]*2
@@ -21,6 +21,7 @@ starting_phases = {}
 time_consumed = {}
 occurence = {}
 phaseUtil = {}
+length_car = 5
 
 for node_id in target_nodes:
     time_consumed[node_id] = {}
@@ -79,6 +80,22 @@ def get_phase_duration_list(node_id, timeSta):
             idur = int(dur)
             dur_list.append(idur)
     return dur_list, cycle
+
+def get_incoming_edges(node_id):
+    catalog = model.getCatalog()
+    node = catalog.find(node_id)
+    in_edges = node.getEntranceSections()
+
+    return [edge.getId() for edge in in_edges]
+
+def get_cumulative_queue_length(section_id):
+    catalog = model.getCatalog()
+    section = catalog.find(section_id)
+    num_lanes = section.getNbLanesAtPos(section.length2D())
+    queue = sum(aapi.AKIEstGetCurrentStatisticsSectionLane(section_id, i, 0).LongQueueAvg for i in range(num_lanes))
+
+    return queue*length_car/section.length2D()
+
 
 def get_replication_name(node_id): #cj28
     node_id = node_id
@@ -166,6 +183,17 @@ def get_green_time(node_id, time, timeSta):
                 
     return None
 
+rep_name, rep_seed = get_replication_name(node_id)
+past_cumul_queue = {}
+for node_id in target_nodes:
+    past_cumul_queue[node_id] = {}
+    incoming_edges = get_incoming_edges(node_id)
+
+    # get initial detector values
+    for edge_id in incoming_edges:
+        past_cumul_queue[node_id][edge_id] = 0
+
+
 def AAPILoad():
     return 0
 
@@ -188,13 +216,26 @@ def AAPIPostManage(time, timeSta, timeTrans, acycle):
             action_list = []
             gutil = gUtil_at_interval(node_id, time_consumed, occurence, timeSta)
             util_list = [gutil]
-            rep_name, rep_seed = get_replication_name(node_id)
             ep = Export_Params(rep_name,node_id)
             for phase in green_phases[node_id]:
                 normalDuration, _, _ = get_duration_phase(node_id, phase, timeSta)
                 action_list.append(normalDuration)
             delay = aapi.AKIEstGetPartialStatisticsNodeApproachDelay(node_id)
-            ep.export_delay_action(node_id, rep_seed, delay, action_list, util_list, time, timeSta)
+
+            r_queue = 0
+            a1 = 1
+            a0 = 0.2
+            for section_id in past_cumul_queue[node_id]:  # self.past_cumul_queue[node_id]
+                current_cumul_queue = get_cumulative_queue_length(section_id)
+                queue = current_cumul_queue - past_cumul_queue[node_id][section_id]
+                past_cumul_queue[node_id][section_id] = current_cumul_queue
+
+                r_queue += queue
+            
+            ep.export_delay_action(node_id, rep_seed, delay, action_list, util_list, r_queue, time, timeSta)
+
+            #if node_id == 3344:
+            #    print(gutil)
 
     return 0
 

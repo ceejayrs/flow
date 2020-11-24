@@ -28,7 +28,7 @@ DETECTOR_STEP = 900  # copy to run.py #Cj: every 15 minutes
 TIME_HORIZON = 3600*4 - DETECTOR_STEP  # 14400
 HORIZON = int(TIME_HORIZON//SIM_STEP)  # 18000
 
-RLLIB_N_CPUS = 6
+RLLIB_N_CPUS = 8
 RLLIB_HORIZON = int(TIME_HORIZON//DETECTOR_STEP)  # 16
 
 RLLIB_N_ROLLOUTS = 3  # copy to coordinated_lights.py
@@ -50,7 +50,7 @@ sim_params = AimsunParams(sim_step=SIM_STEP,
 
 
 flow_params = dict(
-    exp_tag="multi_nonshared_trial1",
+    exp_tag="multi_nonshared_trial2",
     env_name=MultiLightEnv,
     network=CoordinatedNetwork,
     simulator='aimsun',
@@ -75,7 +75,7 @@ def gen_policy(act_space):
 
 N_phases = 9
 def base_action(n_phases):
-    return n_phases*[Discrete(100,)] + (N_phases-n_phases)*[Discrete(0)]  
+    return n_phases*[Discrete(80,)] + (N_phases-n_phases)*[Discrete(0)]  
 
 def n1_action():
     space = base_action(7) 
@@ -97,8 +97,8 @@ def n2_action():
 #    space = base_action(4) 
 #    return Tuple(*space)  # 5 (probabilities)
 
-POLICY_GRAPHS = {'3329': gen_policy(Tuple(7*[Discrete(100,)]+ (2)*[Discrete(1)])),
-                 '3344': gen_policy(Tuple(9*[Discrete(100,)]))}
+POLICY_GRAPHS = {'3329': gen_policy(Tuple(7*[Discrete(80,)]+ (2)*[Discrete(1)])),
+                 '3344': gen_policy(Tuple(9*[Discrete(80,)]))}
                  #'n3': gen_policy(n3_action),
                  #'n4': gen_policy(n4_action),
                  #'n5': gen_policy(n5_action)}
@@ -140,7 +140,7 @@ def setup_exps(version=0):
     config["vf_loss_coeff"] = 1
     config["gamma"] = 0.999
     # config["lr"] = 5e-4 #vary, lr
-    config["lr_schedule"] = [[0, 5e-3], [120000, 5e-4]]
+    config["lr_schedule"] = [[0, 5e-3], [40000, 5e-4],[80000, 5e-5],[120000, 5e-6]]
 
     # save the flow params for replay
     flow_json = json.dumps(
