@@ -107,20 +107,6 @@ def get_replication_name(node_id): #cj28
 
     return rep_name, rep_seed
 
-def export_delay_action(node_id, delay, action_list, time, timeSta):
-    time = time
-    timeSta = timeSta
-    ave_app_delay = delay
-    data_list = [time,delay]
-
-    for action in action_list:
-        data_list.append(action)
-
-    with open(str(rep_name)+"_"+str(node_id), 'a') as csvFile:
-        csv_writer = csv.writer(csvFile)
-        csv_writer.writerow(rep_seed)
-        csv_writer.writerows([data_list,])
-
 def gUtil_at_interval(node_id, ttime, occurs, timeSta):
     global phaseUtil
     action_duration = []
@@ -213,6 +199,7 @@ def AAPIPostManage(time, timeSta, timeTrans, acycle):
     # print( "AAPIPostManage" )
     for node_id in target_nodes:
         if time % 900 == 0 and time != 0:
+            print(rep_name, rep_seed)
             action_list = []
             gutil = gUtil_at_interval(node_id, time_consumed, occurence, timeSta)
             util_list = [gutil]

@@ -50,7 +50,7 @@ sim_params = AimsunParams(sim_step=SIM_STEP,
 
 
 flow_params = dict(
-    exp_tag="multi_nonshared_trial2",
+    exp_tag="multi_nonshared_allnodes_trial1",
     env_name=MultiLightEnv,
     network=CoordinatedNetwork,
     simulator='aimsun',
@@ -98,12 +98,13 @@ def n2_action():
 #    return Tuple(*space)  # 5 (probabilities)
 
 POLICY_GRAPHS = {'3329': gen_policy(Tuple(7*[Discrete(80,)]+ (2)*[Discrete(1)])),
-                 '3344': gen_policy(Tuple(9*[Discrete(80,)]))}
-                 #'n3': gen_policy(n3_action),
-                 #'n4': gen_policy(n4_action),
-                 #'n5': gen_policy(n5_action)}
+                 '3344': gen_policy(Tuple(9*[Discrete(80,)])),
+                 '3370': gen_policy(Tuple(5*[Discrete(80,)]+ (4)*[Discrete(1)])),
+                 '3341': gen_policy(Tuple(5*[Discrete(80,)]+ (4)*[Discrete(1)])),
+                 '3369': gen_policy(Tuple(1*[Discrete(80,)]+ (8)*[Discrete(1)]))
+                 }
 
-POLICIES_TO_TRAIN = ['3329','3344']
+POLICIES_TO_TRAIN = ['3329','3344', '3370', '3341', '3369']
 
 def policy_mapping_fn(agent_id):
     """Map a policy in RLlib."""
@@ -140,7 +141,7 @@ def setup_exps(version=0):
     config["vf_loss_coeff"] = 1
     config["gamma"] = 0.999
     # config["lr"] = 5e-4 #vary, lr
-    config["lr_schedule"] = [[0, 5e-3], [40000, 5e-4],[80000, 5e-5],[120000, 5e-6]]
+    config["lr_schedule"] = [[0, 5e-3], [40000, 5e-4],[100000, 5e-5]]
 
     # save the flow params for replay
     flow_json = json.dumps(

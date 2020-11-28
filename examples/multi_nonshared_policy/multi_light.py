@@ -7,7 +7,7 @@ from flow.envs.multiagent.base import MultiEnv
 from flow.networks import Network
 from aimsun_props import Aimsun_Params
 
-ADDITIONAL_ENV_PARAMS = {'target_nodes': [3329, 3344],
+ADDITIONAL_ENV_PARAMS = {'target_nodes': [3329, 3344, 3370, 3341, 3369],
                          # 'observed_nodes': [3386, 3371, 3362, 3373],
                          'num_incoming_edges_per_node': 4,
                          'num_detector_types': 4,
@@ -107,8 +107,7 @@ class MultiLightEnv(MultiEnv):
                 self.past_cumul_queue[node_id][edge_id] = 0
             # get control plan params
 
-            control_id, num_rings = self.k.traffic_light.get_control_ids(
-                node_id)  # self.control_id = list, num_rings = list
+            control_id, num_rings = self.k.traffic_light.get_control_ids(node_id)  # self.control_id = list, num_rings = list
             max_dict, max_p = ap.get_max_dict(node_id, self.rep_name)
 
             self.aimsun_props[node_id]['green_phases'] = ap.get_green_phases(node_id)
@@ -119,6 +118,7 @@ class MultiLightEnv(MultiEnv):
             self.aimsun_props[node_id]['max_dict'] = max_dict
             self.aimsun_props[node_id]['max_p'] = max_p
 
+        #print(self.edge_detector_dict)
         self.ignore_policy = False
 
     @property
@@ -168,15 +168,15 @@ class MultiLightEnv(MultiEnv):
             cur_maxdl = max_p[control_id]
             maxd_list = max_dict[cur_maxdl]
 
+            def_actions = np.array(rl_action).flatten()
+            actions = rescale_bar(def_actions,10,90)
+
             if node_id == 3329:
-                def_actions = np.array(rl_action).flatten()
-                actions = rescale_bar(def_actions,10,90)
                 barrier = actions[-3]/100
                 sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
                 action_rings = [[actions[0:2],actions[2:4]],[[],actions[4:6]]]
                 for i in range(len(action_rings)): #2
                     ring = action_rings[i] #i=0, ring = [[],[]], i =1, ring = [x,[]]
-                    #print(i, ring)
                     for j in range(len(ring)):
                         phase_pair = ring[j]
                         if phase_pair != []:
@@ -184,11 +184,8 @@ class MultiLightEnv(MultiEnv):
 
                 # for phase 9, p9 = sum(ring1,barrier1) + 1st interphase
                 action_rings[1][0] = [sum(action_rings[0][0]) + 4] # 4 is interphase between 1 and 3
-                action_rings[1][1][0] -= 1 #interphase is greater than ring1b2 by 1sec
 
             elif node_id == 3344:
-                def_actions = np.array(rl_action).flatten()
-                actions = rescale_bar(def_actions,10,90)
                 barrier = actions[-1]/100
                 sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
                 action_rings = [[actions[0:2],actions[2:4]],[actions[4:6],actions[6:8]]]
@@ -199,46 +196,38 @@ class MultiLightEnv(MultiEnv):
                         if sum(phase_pair) != sum_barrier[j]:
                             action_rings[i][j] = rescale_act(phase_pair, sum_barrier[j], sum(phase_pair))
 
-            #elif node_id == 3370:
-            #    def_actions = np.array(n1_actions).flatten()
-            #    actions = rescale_bar(def_actions,10,90)
-            #    barrier = actions[-1]/100
-            #    sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
-            #    action_rings = [[actions[0:2],actions[2:4]],[actions[4:6],actions[6:8]]]
-            #    for i in range(len(action_rings)):
-            #        ring = action_rings[i]
-            #        for j in range(len(ring)):
-            #            phase_pair = ring[j]
-            #            if sum(phase_pair) != sum_barrier[j]:
-            #                action_rings[i][j] = rescale_act(phase_pair, sum_barrier[j], sum(phase_pair))
-#
-            #elif node_id == 3341:
-            #    def_actions = np.array(n1_actions).flatten()
-            #    actions = rescale_bar(def_actions,10,90)
-            #    barrier = actions[-1]/100
-            #    sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
-            #    action_rings = [[actions[0:2],actions[2:4]],[actions[4:6],actions[6:8]]]
-            #    for i in range(len(action_rings)):
-            #        ring = action_rings[i]
-            #        for j in range(len(ring)):
-            #            phase_pair = ring[j]
-            #            if sum(phase_pair) != sum_barrier[j]:
-            #                action_rings[i][j] = rescale_act(phase_pair, sum_barrier[j], sum(phase_pair))
-#
-            #elif node_id == 3369:
-            #    def_actions = np.array(n1_actions).flatten()
-            #    actions = rescale_bar(def_actions,10,90)
-            #    barrier = actions[-1]/100
-            #    sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
-            #    action_rings = [[actions[0:2],actions[2:4]],[actions[4:6],actions[6:8]]]
-            #    for i in range(len(action_rings)):
-            #        ring = action_rings[i]
-            #        for j in range(len(ring)):
-            #            phase_pair = ring[j]
-            #            if sum(phase_pair) != sum_barrier[j]:
-            #                action_rings[i][j] = rescale_act(phase_pair, sum_barrier[j], sum(phase_pair))
-            #    # gives the length of barriers
-            
+            elif node_id == 3370:
+                barrier = actions[-5]/100
+                sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
+                action_rings = [[actions[0:2],[]],[actions[2:4],[]]]
+                for i in range(len(action_rings)):
+                    ring = action_rings[i]
+                    for j in range(len(ring)):
+                        phase_pair = ring[j]
+                        if sum(phase_pair) != sum_barrier[j]:
+                            action_rings[i][j] = rescale_act(phase_pair, sum_barrier[j], sum(phase_pair))
+
+                action_rings[0][1] = [int(sum_barrier[1])]
+                action_rings[1][1] = [int(sum_barrier[1])]
+
+            elif node_id == 3341:
+                barrier = actions[-5]/100
+                sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
+                action_rings = [[actions[0:2],[]],[actions[2:4],[]]]
+                for i in range(len(action_rings)):
+                    ring = action_rings[i]
+                    for j in range(len(ring)):
+                        phase_pair = ring[j]
+                        if sum(phase_pair) != sum_barrier[j]:
+                            action_rings[i][j] = rescale_act(phase_pair, sum_barrier[j], sum(phase_pair))
+
+                action_rings[0][1] = [int(sum_barrier[1])]
+                action_rings[1][1] = [int(sum_barrier[1]) + 5]
+
+            elif node_id == 3369:
+                barrier = actions[-1]/100
+                sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
+                action_rings = [[[sum_barrier[0]],[sum_barrier[1]]],[[sum_barrier[0]],[sum_barrier[1]+5]]]
 
             rescaled_actions = [phase for ring in action_rings for pair in ring for phase in pair]
             #print(node_id, barrier, action_rings, rescaled_actions)
@@ -302,7 +291,7 @@ class MultiLightEnv(MultiEnv):
         """Computes the sum of queue lengths at all intersections in the network."""
         # change to queue + util per node
         reward = 0
-        node_gUtil = self.k.traffic_light.get_green_util(3322)
+        node_gUtil = self.k.traffic_light.get_green_util(3344)
         rews = {}
         for i, node_id in enumerate(self.target_nodes):
             r_queue = 0
