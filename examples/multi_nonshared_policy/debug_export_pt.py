@@ -4,18 +4,18 @@ import csv
 import PyANGKernel as gk
 import PyANGConsole as cs
 from datetime import datetime
-sys.path.append('/home/damian/anaconda3/envs/aimsun_flow/lib/python2.7/site-packages')
+sys.path.append('/home/cjrsantos/anaconda3/envs/aimsun_flow/lib/python2.7/site-packages')
 import numpy as np
 from aimsun_props import Aimsun_Params, Export_Params
 
-ap = Aimsun_Params("/home/damian/ma_flow/flow/flow/utils/aimsun/aimsun_props.csv")
+ap = Aimsun_Params("/home/cjrsantos/ma_flow/flow/flow/utils/aimsun/aimsun_props.csv")
 green_phases = {}
 model = gk.GKSystem.getSystem().getActiveModel()
 
-target_nodes = [3329, 3344]
+target_nodes = [3329, 3344, 3370, 3341, 3369]
 
-start_time = [0]*2
-ut_time = [0]*2
+start_time = {} #[0]*2
+ut_time = {} #[0]*2
 green_phases = {}
 starting_phases = {} 
 time_consumed = {}
@@ -27,6 +27,8 @@ for node_id in target_nodes:
     time_consumed[node_id] = {}
     occurence[node_id] = {}
     phaseUtil[node_id] = {}
+    start_time[node_id] = [0]*2
+    ut_time[node_id] = [0]*2
 
     green_phase_list = ap.get_green_phases(node_id)
     starting_phases_list = ap.get_start_phases(node_id)
@@ -159,12 +161,12 @@ def get_green_time(node_id, time, timeSta):
     for i, (cur_phase, start_phase) in enumerate(zip(cur_phases, start_phases)):
         if cur_phase != start_phase:
             new_time = round(time)
-            ut_time[i] = abs(new_time - start_time[i])
+            ut_time[node_id][i] = abs(new_time - start_time[node_id][i])
             #print(start_phase,start_time[i], new_time, ut_time[i])
-            start_time[i] = new_time
+            start_time[node_id][i] = new_time
             starting_phases[node_id][i] = cur_phase
             if aapi.ECIIsAnInterPhase(node_id,start_phase,timeSta) == 0:
-                time_consumed[node_id][start_phase] += ut_time[i]
+                time_consumed[node_id][start_phase] += ut_time[node_id][i]
                 occurence[node_id][start_phase] += 1
                 
     return None
