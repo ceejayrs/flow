@@ -112,8 +112,8 @@ def get_cycle_length(node_id, control_id):
     rep_name = str(aapi.ANGConnGetReplicationId())
     #rep_nums = [8050297, 8050315, 8050322]
     #control_dict = {'8050297': [110, 90, 120, 90], '8050315': [90, 105], '8050322': [105, 120, 120, 105, 90]}
-    rep_nums = [8070004, 8070014, 8070024]
-    control_dict = {'8070004': [110, 90, 120, 90], '8070014': [90, 105], '8070024': [105, 120, 120, 105, 90]}
+    rep_nums = [8050360, 8050366, 8050372]
+    control_dict = {'8050360': [110, 90, 120, 90], '8050366': [90, 105], '8050372': [105, 120, 120, 105, 90]}
 
     for i in range(len(rep_nums)):
         if rep_name == str(rep_nums[i]):
