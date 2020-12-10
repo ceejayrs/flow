@@ -125,11 +125,11 @@ def get_current_phase(node_id):
     num_rings = aimsun_api.ECIGetCurrentNbRingsJunction(node_id)
     num_phases = [0]*num_rings
     curr_phase = [None]*num_rings
-    num_phases = aimsun_api.ECIGetNumberPhasesInRing(node_id, 0)
     for ring_id in range(num_rings):
+        num_phases[ring_id] = aimsun_api.ECIGetNumberPhasesInRing(node_id, ring_id)
         curr_phase[ring_id] = aimsun_api.ECIGetCurrentPhaseInRing(node_id, ring_id)
         if ring_id > 0:
-            curr_phase[ring_id] += num_phases
+            curr_phase[ring_id] += num_phases[0]
     return curr_phase
 
 def get_green_time(node_id, time, timeSta):
@@ -151,7 +151,7 @@ def get_green_time(node_id, time, timeSta):
                 elif node_id == 3369 and start_phase == 7:
                     continue
                 else:
-                    time_consumed[node_id][start_phase] += ut_time[i]
+                    time_consumed[node_id][start_phase] += ut_time[node_id][i]
                     occurence[node_id][start_phase] += 1
                 
     return None
