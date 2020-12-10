@@ -50,7 +50,7 @@ sim_params = AimsunParams(sim_step=SIM_STEP,
 
 
 flow_params = dict(
-    exp_tag="multi_nonshared_allnodes_trial1",
+    exp_tag="mans_allnodes_dlt_trial1",
     env_name=MultiLightEnv,
     network=CoordinatedNetwork,
     simulator='aimsun',
@@ -73,29 +73,6 @@ def gen_policy(act_space):
     """Generate a policy in RLlib."""
     return PPOTFPolicy, obs_space, act_space, {}
 
-N_phases = 9
-def base_action(n_phases):
-    return n_phases*[Discrete(80,)] + (N_phases-n_phases)*[Discrete(0)]  
-
-def n1_action():
-    space = base_action(7) 
-    return Tuple(*space)  # 5 (probabilities)
-
-def n2_action():
-    space = base_action(9) 
-    return Tuple(*space)  # 5 (probabilities)
-#
-#def n3_action():
-#    space = base_action(6) # ??? no signal group: check if 5 or 6
-#    return Tuple(*space)  # 5 (probabilities)
-#
-#def n4_action():
-#    space = base_action(6) 
-#    return Tuple(*space)  # 5 (probabilities)
-#
-#def n5_action():
-#    space = base_action(4) 
-#    return Tuple(*space)  # 5 (probabilities)
 
 POLICY_GRAPHS = {'3329': gen_policy(Tuple(7*[Discrete(80,)]+ (2)*[Discrete(1)])),
                  '3344': gen_policy(Tuple(9*[Discrete(80,)])),
@@ -141,7 +118,7 @@ def setup_exps(version=0):
     config["vf_loss_coeff"] = 1
     config["gamma"] = 0.999
     # config["lr"] = 5e-4 #vary, lr
-    config["lr_schedule"] = [[0, 5e-3], [40000, 5e-4],[100000, 5e-5]]
+    config["lr_schedule"] = [[0, 5e-3], [40000, 5e-4]]
 
     # save the flow params for replay
     flow_json = json.dumps(

@@ -14,9 +14,9 @@ ADDITIONAL_ENV_PARAMS = {'target_nodes': [3329, 3344, 3370, 3341, 3369],
                          'num_measures': 2,
                          'detection_interval': (0, 15, 0),
                          'statistical_interval': (0, 15, 0),
-                         'replication_list': ['Replication 8050297',  # 5-11
-                                              'Replication 8050315',  # 10-14
-                                              'Replication 8050322'
+                         'replication_list': ['Replication 8070004', #8050297',  # 5-11
+                                              'Replication 8070014', #8050315',  # 10-14
+                                              'Replication 8070024' #8050322'
                                               ]}  # 14-21
 # the replication list should be copied in load.py
 
@@ -213,7 +213,7 @@ class MultiLightEnv(MultiEnv):
             elif node_id == 3341:
                 barrier = actions[-5]/100
                 sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
-                action_rings = [[actions[0:2],[]],[actions[2:4],[]]]
+                action_rings = [[actions[0:2],[]],[actions[2:4]]]
                 for i in range(len(action_rings)):
                     ring = action_rings[i]
                     for j in range(len(ring)):
@@ -222,12 +222,12 @@ class MultiLightEnv(MultiEnv):
                             action_rings[i][j] = rescale_act(phase_pair, sum_barrier[j], sum(phase_pair))
 
                 action_rings[0][1] = [int(sum_barrier[1])]
-                action_rings[1][1] = [int(sum_barrier[1]) + 5]
+                #action_rings[1][1] = [int(sum_barrier[1]) + 5]
 
             elif node_id == 3369:
                 barrier = actions[-1]/100
-                sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
-                action_rings = [[[sum_barrier[0]],[sum_barrier[1]]],[[sum_barrier[0]],[sum_barrier[1]+5]]]
+                sum_barrier = [int(round(cycle*barrier)), int(cycle - round(cycle*barrier))]
+                action_rings = [[[sum_barrier[0]],[sum_barrier[1]]],[[sum_barrier[0]]]]
 
             rescaled_actions = [phase for ring in action_rings for pair in ring for phase in pair]
             #print(node_id, barrier, action_rings, rescaled_actions)

@@ -4,12 +4,12 @@ import PyANGKernel as gk
 from collections import OrderedDict
 import random as r
 import sys
-sys.path.append('/home/damian/anaconda3/envs/aimsun_flow/lib/python2.7/site-packages')
+sys.path.append('/home/cjrsantos/anaconda3/envs/aimsun_flow/lib/python2.7/site-packages')
 import numpy as np
 
 from aimsun_props import Aimsun_Params, Export_Params
 
-ap = Aimsun_Params('/home/damian/flow/flow/utils/aimsun/aimsun_props.csv')
+ap = Aimsun_Params('/home/cjrsantos/ma_flow/flow/flow/utils/aimsun/aimsun_props.csv')
 ## Export files
 writeFlag = False
 
@@ -17,7 +17,7 @@ model = gk.GKSystem.getSystem().getActiveModel()
 global edge_detector_dict
 edge_detector_dict = {}
 
-target_nodes = [3329, 3344, 3370, 3341, 3369]
+target_nodes = [3369]
 start_time = [0]*2
 ut_time = [0]*2
 green_phases = dict.fromkeys(target_nodes)
@@ -91,7 +91,7 @@ def get_current_phase(node_id):
         num_phases[ring_id] = aimsun_api.ECIGetNumberPhasesInRing(node_id, ring_id)
         curr_phase[ring_id] = aimsun_api.ECIGetCurrentPhaseInRing(node_id, ring_id)
         if ring_id > 0:
-            curr_phase[ring_id] += num_phases[ring_id]
+            curr_phase[ring_id] += num_phases[0]
     return curr_phase
 
 def get_green_time(node_id, time, timeSta):
@@ -104,12 +104,16 @@ def get_green_time(node_id, time, timeSta):
         if cur_phase != start_phase:
             new_time = round(time)
             ut_time[i] = abs(new_time - start_time[i])
-            #print(start_phase,start_time[i], new_time, ut_time[i])
             start_time[i] = new_time
             starting_phases[node_id][i] = cur_phase
             if aimsun_api.ECIIsAnInterPhase(node_id,start_phase,timeSta) == 0:
-                time_consumed[node_id][start_phase] += ut_time[i]
-                occurence[node_id][start_phase] += 1
+                if node_id == 3341 and start_phase == 11:
+                    continue
+                elif node_id == 3369 and start_phase == 7:
+                    continue
+                else:
+                    time_consumed[node_id][start_phase] += ut_time[i]
+                    occurence[node_id][start_phase] += 1
                 
     return None
 

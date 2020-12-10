@@ -11,9 +11,9 @@ import numpy as np
 
 RLLIB_HORIZON = 3  # copy from train_rllib.py
 RLLIB_TRAINING_ITERATIONS = 1000000  # copy from train_rllib.py
-REPLICATION_LIST = ['Replication 8050297', # 5-11
-                    'Replication 8050315',  # 10-14
-                    'Replication 8050322'  # 14-21
+REPLICATION_LIST = ['Replication 8070004', #8050297', # 5-11
+                    'Replication 8070014', #8050315',  # 10-14
+                    'Replication 8070024' #8050322'  # 14-21
                     ]
 
 
