@@ -802,7 +802,7 @@ def AAPIManage(time, timeSta, timeTrans, acycle):
         kwargs = {"time": time, "timeSta": timeSta, "timeTrans": timeTrans, "acycle": acycle, "gp_Util": gp_Util}
         start_new_thread(threaded_client, (c,), kwargs)
 
-        print(time_consumed, occurence)
+        #print(time_consumed, occurence)
         time_consumed = {}
         occurence = {}
 
