@@ -14,9 +14,9 @@ ADDITIONAL_ENV_PARAMS = {'target_nodes': [3329, 3344, 3370, 3341, 3369],
                          'num_measures': 2,
                          'detection_interval': (0, 15, 0),
                          'statistical_interval': (0, 15, 0),
-                         'replication_list': ['Replication 8050360', #8050297', # 5-11
-                                              'Replication 8050366', #8050315',  # 10-14
-                                              'Replication 8050372' #8050322'  # 14-21
+                         'replication_list': ['Replication 8050297', #8050297', # 5-11
+                                              'Replication 8050315', #8050315',  # 10-14
+                                              'Replication 8050322' #8050322'  # 14-21
                                               ]}  # 14-21
 # the replication list should be copied in load.py
 

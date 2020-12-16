@@ -770,7 +770,7 @@ def AAPIInit():
 def AAPIManage(time, timeSta, timeTrans, acycle):
     """Execute commands before an Aimsun simulation step."""
     # Create a thread when data needs to be sent back to FLOW
-    global time_consumed, occurence
+    global time_consumed, occurence, green_phases
     for node_id in target_nodes:
         get_green_time(node_id, time, timeSta)
 
@@ -802,17 +802,22 @@ def AAPIManage(time, timeSta, timeTrans, acycle):
         kwargs = {"time": time, "timeSta": timeSta, "timeTrans": timeTrans, "acycle": acycle, "gp_Util": gp_Util}
         start_new_thread(threaded_client, (c,), kwargs)
 
+        print(time_consumed, occurence)
+        time_consumed = {}
+        occurence = {}
+
+        for node_id in target_nodes:
+            time_consumed[node_id] = {}
+            occurence[node_id] = {}
+            green_phase_list = ap.get_green_phases(node_id)
+            time_consumed[node_id] = dict.fromkeys(green_phases[node_id],0)
+            occurence[node_id] = dict.fromkeys(green_phases[node_id],0) # dictionary of node and their phases {node_id:None,...}
+
     return 0
 
 
 def AAPIPostManage(time, timeSta, timeTrans, acycle):
     """Execute commands after an Aimsun simulation step."""
-    delta = 0.8/2
-    if ((time % 900) > -delta and (time % 900) < delta) or ((time % 900) > 900-delta and (time % 900) < 900+delta):
-        time_consumed = dict.fromkeys(target_nodes,0)
-        occurence = dict.fromkeys(target_nodes,0)
-        phaseUtil = dict.fromkeys(target_nodes,0)
-
     return 0
 
 
