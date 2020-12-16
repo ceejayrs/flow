@@ -225,7 +225,7 @@ class MultiLightEnv(MultiEnv):
                 #action_rings[1][1] = [int(sum_barrier[1]) + 5]
 
             elif node_id == 3369:
-                barrier = actions[-1]/100
+                barrier = actions[0]/100
                 sum_barrier = [int(round(cycle*barrier)), int(cycle - round(cycle*barrier))]
                 action_rings = [[[sum_barrier[0]],[sum_barrier[1]]],[[sum_barrier[0]]]]
 
