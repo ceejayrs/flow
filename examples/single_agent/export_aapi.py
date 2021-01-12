@@ -4,7 +4,7 @@ import csv
 import PyANGKernel as gk
 import PyANGConsole as cs
 from datetime import datetime
-sys.path.append('/home/cjrsantos/anaconda3/envs/aimsun_flow/lib/python2.7/site-packages')
+sys.path.append('/home/damian/anaconda3/envs/aimsun_flow/lib/python2.7/site-packages')
 import numpy as np
 
 model = gk.GKSystem.getSystem().getActiveModel()

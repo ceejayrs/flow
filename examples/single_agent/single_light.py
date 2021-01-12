@@ -3,20 +3,20 @@ from gym.spaces import Box, Tuple, Discrete
 import math
 
 from ray.rllib.agents.ppo.ppo_policy import PPOTFPolicy
-from flow.envs.multiagent.base import MultiEnv
+from flow.envs.multiagent.base import Env
 from flow.networks import Network
 from aimsun_props import Aimsun_Params
 
-ADDITIONAL_ENV_PARAMS = {'target_nodes': [3329, 3344, 3370, 3341, 3369],
+ADDITIONAL_ENV_PARAMS = {'target_nodes': [3344],
                          # 'observed_nodes': [3386, 3371, 3362, 3373],
                          'num_incoming_edges_per_node': 4,
                          'num_detector_types': 4,
                          'num_measures': 2,
                          'detection_interval': (0, 15, 0),
                          'statistical_interval': (0, 15, 0),
-                         'replication_list': ['Replication 8050297', #8050297', # 5-11
-                                              'Replication 8050315', #8050315',  # 10-14
-                                              'Replication 8050322' #8050322'  # 14-21
+                         'replication_list': ['Replication 8050297',  # 8050297', # 5-11
+                                              'Replication 8050315',  # 8050315',  # 10-14
+                                              'Replication 8050322'  # 8050322'  # 14-21
                                               ]}  # 14-21
 # the replication list should be copied in load.py
 
@@ -25,18 +25,20 @@ RLLIB_N_ROLLOUTS = 3  # copy from train_rllib.py
 np.random.seed(1234567890)
 
 # read csv of Node Parameters
-ap = Aimsun_Params('/home/damian/ma_flow/flow/flow/utils/aimsun/aimsun_props.csv')
+ap = Aimsun_Params('/home/damian/sa_flow/flow/flow/utils/aimsun/aimsun_props.csv')
+
 
 def rescale_bar(array, NewMin, NewMax):
     rescaled_action = []
     OldMin = 0
     OldMax = 80
-    OldRange = (OldMax - OldMin)  
+    OldRange = (OldMax - OldMin)
     NewRange = (NewMax - NewMin)
     for OldValue in array:
         NewValue = (((OldValue - OldMin) * NewRange) / OldRange) + NewMin
         rescaled_action.append(NewValue)
     return rescaled_action
+
 
 def rescale_act(actions_array, target_value, current_value):
     rescaled_actions = []
@@ -53,7 +55,7 @@ def rescale_act(actions_array, target_value, current_value):
     return rescaled_actions
 
 
-class MultiLightEnv(MultiEnv):
+class SingleLightEnv(Env):
     def __init__(self, env_params, sim_params, network, simulator='aimsun'):
         for param in ADDITIONAL_ENV_PARAMS:
             if param not in env_params.additional_params:
@@ -107,7 +109,8 @@ class MultiLightEnv(MultiEnv):
                 self.past_cumul_queue[node_id][edge_id] = 0
             # get control plan params
 
-            control_id, num_rings = self.k.traffic_light.get_control_ids(node_id)  # self.control_id = list, num_rings = list
+            control_id, num_rings = self.k.traffic_light.get_control_ids(
+                node_id)  # self.control_id = list, num_rings = list
             max_dict, max_p = ap.get_max_dict(node_id, self.rep_name)
 
             self.aimsun_props[node_id]['green_phases'] = ap.get_green_phases(node_id)
@@ -118,16 +121,16 @@ class MultiLightEnv(MultiEnv):
             self.aimsun_props[node_id]['max_dict'] = max_dict
             self.aimsun_props[node_id]['max_p'] = max_p
 
-        #print(self.edge_detector_dict)
+        # print(self.edge_detector_dict)
         self.ignore_policy = False
 
     @property
-    def action_space(self): #defined for a single agent
+    def action_space(self):  # defined for a single agent
         """See class definition."""
-        return Tuple(9 * (Discrete(0,),))  # 8+1 (probabilities)
+        return Tuple(9 * (Discrete(80,),))
 
     @property
-    def observation_space(self): #defined for a single agent
+    def observation_space(self):  # defined for a single agent
         """See class definition."""
         ap = self.additional_params
         shape = (ap['num_incoming_edges_per_node']
@@ -140,108 +143,99 @@ class MultiLightEnv(MultiEnv):
             #print('self.ignore_policy is True')
             return
 
+        node_id = self.target_nodes[0]
+        self.rep_name, _ = self.k.traffic_light.get_replication_name(node_id)
+
+        control_id, num_rings = self.k.traffic_light.get_control_ids(
+            node_id)  # self.control_id = list, num_rings = list
+        max_dict, max_p = ap.get_max_dict(node_id, self.rep_name)
+
+        self.aimsun_props[node_id]['cc_dict'] = ap.get_cp_cycle_dict(node_id, self.rep_name)
+        self.aimsun_props[node_id]['control_id'] = control_id
+        self.aimsun_props[node_id]['max_dict'] = max_dict
+        self.aimsun_props[node_id]['max_p'] = max_p
+
+        cycle = self.aimsun_props[node_id]['cc_dict'][control_id]
+        cycle = cycle - self.aimsun_props[node_id]['sum_interphase']
+        phase_list = self.aimsun_props[node_id]['green_phases']
+        cur_maxdl = max_p[control_id]
+        maxd_list = max_dict[cur_maxdl]
+
         all_actions = []
+        def_actions = np.array(rl_actions).flatten()
+        actions = rescale_bar(def_actions, 10, 90)
 
-        for rl_id, rl_action in rl_actions.items():
-            #define different actions for different multiagents
-            #n1_actions = rl_action['3329']
-            #n2_actions = rl_action['3344']
-            #n3_action = rl_actions['n3']
-            #n4_action = rl_actions['n4']
-            #n5_action = rl_actions['n5']
-            #print(rl_id, rl_action)
+        if node_id == 3329:
+            barrier = actions[-3]/100
+            sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
+            action_rings = [[actions[0:2], actions[2:4]], [[], actions[4:6]]]
+            for i in range(len(action_rings)):  # 2
+                ring = action_rings[i]  # i=0, ring = [[],[]], i =1, ring = [x,[]]
+                for j in range(len(ring)):
+                    phase_pair = ring[j]
+                    if phase_pair != []:
+                        action_rings[i][j] = rescale_act(phase_pair, sum_barrier[j], sum(phase_pair))
 
-            node_id = int(rl_id)
-            self.rep_name, _ = self.k.traffic_light.get_replication_name(3344)
+            # for phase 9, p9 = sum(ring1,barrier1) + 1st interphase
+            action_rings[1][0] = [sum(action_rings[0][0]) + 4]  # 4 is interphase between 1 and 3
 
-            control_id, num_rings = self.k.traffic_light.get_control_ids(node_id)  # self.control_id = list, num_rings = list
-            max_dict, max_p = ap.get_max_dict(node_id, self.rep_name)
+        elif node_id == 3344:
+            barrier = actions[-1]/100
+            sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
+            action_rings = [[actions[0:2], actions[2:4]], [actions[4:6], actions[6:8]]]
+            for i in range(len(action_rings)):
+                ring = action_rings[i]
+                for j in range(len(ring)):
+                    phase_pair = ring[j]
+                    if sum(phase_pair) != sum_barrier[j]:
+                        action_rings[i][j] = rescale_act(phase_pair, sum_barrier[j], sum(phase_pair))
 
-            self.aimsun_props[node_id]['cc_dict'] = ap.get_cp_cycle_dict(node_id, self.rep_name)
-            self.aimsun_props[node_id]['control_id'] = control_id
-            self.aimsun_props[node_id]['max_dict'] = max_dict
-            self.aimsun_props[node_id]['max_p'] = max_p
+        elif node_id == 3370:
+            barrier = actions[-5]/100
+            sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
+            action_rings = [[actions[0:2], []], [actions[2:4], []]]
+            for i in range(len(action_rings)):
+                ring = action_rings[i]
+                for j in range(len(ring)):
+                    phase_pair = ring[j]
+                    if sum(phase_pair) != sum_barrier[j]:
+                        action_rings[i][j] = rescale_act(phase_pair, sum_barrier[j], sum(phase_pair))
 
-            cycle = self.aimsun_props[node_id]['cc_dict'][control_id]
-            cycle = cycle - self.aimsun_props[node_id]['sum_interphase']
-            phase_list = self.aimsun_props[node_id]['green_phases']
-            cur_maxdl = max_p[control_id]
-            maxd_list = max_dict[cur_maxdl]
+            action_rings[0][1] = [int(sum_barrier[1])]
+            action_rings[1][1] = [int(sum_barrier[1])]
 
-            def_actions = np.array(rl_action).flatten()
-            actions = rescale_bar(def_actions,10,90)
+        elif node_id == 3341:
+            barrier = actions[-5]/100
+            sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
+            action_rings = [[actions[0:2], []], [actions[2:4]]]
+            for i in range(len(action_rings)):
+                ring = action_rings[i]
+                for j in range(len(ring)):
+                    phase_pair = ring[j]
+                    if sum(phase_pair) != sum_barrier[j]:
+                        action_rings[i][j] = rescale_act(phase_pair, sum_barrier[j], sum(phase_pair))
 
-            if node_id == 3329:
-                barrier = actions[-3]/100
-                sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
-                action_rings = [[actions[0:2],actions[2:4]],[[],actions[4:6]]]
-                for i in range(len(action_rings)): #2
-                    ring = action_rings[i] #i=0, ring = [[],[]], i =1, ring = [x,[]]
-                    for j in range(len(ring)):
-                        phase_pair = ring[j]
-                        if phase_pair != []:
-                            action_rings[i][j] = rescale_act(phase_pair, sum_barrier[j], sum(phase_pair))
+            action_rings[0][1] = [int(sum_barrier[1])]
+            #action_rings[1][1] = [int(sum_barrier[1]) + 5]
 
-                # for phase 9, p9 = sum(ring1,barrier1) + 1st interphase
-                action_rings[1][0] = [sum(action_rings[0][0]) + 4] # 4 is interphase between 1 and 3
+        elif node_id == 3369:
+            barrier = actions[0]/100
+            sum_barrier = [int(round(cycle*barrier)), int(cycle - round(cycle*barrier))]
+            action_rings = [[[sum_barrier[0]], [sum_barrier[1]]], [[sum_barrier[0]]]]
 
-            elif node_id == 3344:
-                barrier = actions[-1]/100
-                sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
-                action_rings = [[actions[0:2],actions[2:4]],[actions[4:6],actions[6:8]]]
-                for i in range(len(action_rings)):
-                    ring = action_rings[i]
-                    for j in range(len(ring)):
-                        phase_pair = ring[j]
-                        if sum(phase_pair) != sum_barrier[j]:
-                            action_rings[i][j] = rescale_act(phase_pair, sum_barrier[j], sum(phase_pair))
+        rescaled_actions = [phase for ring in action_rings for pair in ring for phase in pair]
+        #print(node_id, barrier, action_rings, rescaled_actions)
+        for phase, action, maxd in zip(phase_list, rescaled_actions, maxd_list):
+            if action:
+                if action > maxd:
+                    maxout = action
+                else:
+                    maxout = maxd
+                self.k.traffic_light.change_phase_duration(node_id, phase, action, maxd)
 
-            elif node_id == 3370:
-                barrier = actions[-5]/100
-                sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
-                action_rings = [[actions[0:2],[]],[actions[2:4],[]]]
-                for i in range(len(action_rings)):
-                    ring = action_rings[i]
-                    for j in range(len(ring)):
-                        phase_pair = ring[j]
-                        if sum(phase_pair) != sum_barrier[j]:
-                            action_rings[i][j] = rescale_act(phase_pair, sum_barrier[j], sum(phase_pair))
+        all_actions.append(rescaled_actions)
 
-                action_rings[0][1] = [int(sum_barrier[1])]
-                action_rings[1][1] = [int(sum_barrier[1])]
-
-            elif node_id == 3341:
-                barrier = actions[-5]/100
-                sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
-                action_rings = [[actions[0:2],[]],[actions[2:4]]]
-                for i in range(len(action_rings)):
-                    ring = action_rings[i]
-                    for j in range(len(ring)):
-                        phase_pair = ring[j]
-                        if sum(phase_pair) != sum_barrier[j]:
-                            action_rings[i][j] = rescale_act(phase_pair, sum_barrier[j], sum(phase_pair))
-
-                action_rings[0][1] = [int(sum_barrier[1])]
-                #action_rings[1][1] = [int(sum_barrier[1]) + 5]
-
-            elif node_id == 3369:
-                barrier = actions[0]/100
-                sum_barrier = [int(round(cycle*barrier)), int(cycle - round(cycle*barrier))]
-                action_rings = [[[sum_barrier[0]],[sum_barrier[1]]],[[sum_barrier[0]]]]
-
-            rescaled_actions = [phase for ring in action_rings for pair in ring for phase in pair]
-            #print(node_id, barrier, action_rings, rescaled_actions)
-            for phase, action, maxd in zip(phase_list, rescaled_actions, maxd_list):
-                if action:
-                    if action > maxd:
-                        maxout = action
-                    else:
-                        maxout = maxd
-                    self.k.traffic_light.change_phase_duration(node_id, phase, action, maxd)
-            
-            all_actions.append(rescaled_actions)
-
-        self.current_phase_timings = all_actions
+        self.current_phase_timings = all_actions[0]
 
     def get_state(self, rl_id=None, **kwargs):
         """See class definition."""
@@ -284,15 +278,13 @@ class MultiLightEnv(MultiEnv):
             obs.update({str(node): state})
             #ma_state[str(node)] = state
 
-        #print(type(obs))
-        return obs
+        #print(state)
+        return state
 
     def compute_reward(self, rl_actions, **kwargs):
         """Computes the sum of queue lengths at all intersections in the network."""
-        # change to queue + util per node
         reward = 0
         node_gUtil = self.k.traffic_light.get_green_util(3344)
-        rews = {}
         for i, node_id in enumerate(self.target_nodes):
             r_queue = 0
             gUtil = node_gUtil[i]
@@ -305,14 +297,13 @@ class MultiLightEnv(MultiEnv):
                 self.past_cumul_queue[node_id][section_id] = current_cumul_queue
 
                 r_queue += queue
-            new_reward = ((a0*r_queue) + (a1*gUtil))
+            node_reward = ((a0*r_queue) + (a1*gUtil))
 
-            reward -= (new_reward ** 2) * 100
-            rews[str(node_id)] = reward
+            reward -= (node_reward ** 2) * 100
 
-        print(f'{self.k.simulation.time:.0f}', '\t', f'{rews}', '\t', f'{self.current_phase_timings}')
+        print(f'{self.k.simulation.time:.0f}', '\t', f'{reward}', '\t', f'{self.current_phase_timings}')
 
-        return rews
+        return reward
 
     def step(self, rl_actions):
         """See parent class."""
@@ -332,31 +323,22 @@ class MultiLightEnv(MultiEnv):
 
         # collect information of the state of the network based on the
         # environment class used
-        self.state = states #np.asarray(states).T
+        self.state = np.asarray(states).T
 
         # collect observation new state associated with action
-        next_observation = states #np.copy(states)
+        next_observation = np.copy(states)
 
         # test if the environment should terminate due to a collision or the
         # time horizon being met
 
-        done = {key: False for key in states.keys()}
-        if (self.time_counter >= self.env_params.warmup_steps + self.env_params.horizon):  # or crash
-            done['__all__'] = True
-            for rl_id in self.target_nodes:
-                done[rl_id] = True
-                #    reward[rl_id] = 0
-                #    states[rl_id] = {}
-        else:
-            done['__all__'] = False
+        done = (self.time_counter >= self.env_params.warmup_steps +
+                self.env_params.horizon)  # or crash
 
         # compute the info for each agent
-        infos = {key: {} for key in states.keys()}
+        infos = {}
 
         # compute the reward
         reward = self.compute_reward(rl_actions)
-
-        #print(f'infos {infos}, done {done}')
 
         return next_observation, reward, done, infos
 
@@ -398,6 +380,7 @@ class MultiLightEnv(MultiEnv):
         self.time_counter = 0
 
         return observation
+
 
 class CoordinatedNetwork(Network):
     pass

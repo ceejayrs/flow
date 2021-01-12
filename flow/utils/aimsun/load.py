@@ -1,19 +1,19 @@
 # flake8: noqa
 """Script to load an Aimsun instance from a template."""
+import numpy as np
 from flow.utils.aimsun.scripting_api import AimsunTemplate
 import flow.config as config
 import os
 import json
 import sys
 sys.path.append('/home/damian/anaconda3/envs/aimsun_flow/lib/python2.7/site-packages')
-import numpy as np
 
 
 RLLIB_HORIZON = 3  # copy from train_rllib.py
 RLLIB_TRAINING_ITERATIONS = 1000000  # copy from train_rllib.py
-REPLICATION_LIST = ['Replication 8050297', #8050297', # 5-11
-                    'Replication 8050315', #8050315',  # 10-14
-                    'Replication 8050322' #8050322'  # 14-21
+REPLICATION_LIST = ['Replication 8050297',  # 8050297', # 5-11
+                    'Replication 8050315',  # 8050315',  # 10-14
+                    'Replication 8050322'  # 8050322'  # 14-21
                     ]
 
 
@@ -152,7 +152,7 @@ model = AimsunTemplate(GKSystem, GKGUISystem)
 model.load(template_path)
 
 # HACK: Store port in author
-## modify this to pass lists? [port_string, sim_step, sims_per_step] #debug_time
+# modify this to pass lists? [port_string, sim_step, sims_per_step] #debug_time
 model.setAuthor(port_string)
 
 # collect the simulation parameters

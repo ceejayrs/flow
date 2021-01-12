@@ -8,7 +8,7 @@ sys.path.append('/home/damian/anaconda3/envs/aimsun_flow/lib/python2.7/site-pack
 import numpy as np
 from aimsun_props import Aimsun_Params, Export_Params
 
-ap = Aimsun_Params("/home/damian/ma_flow/flow/flow/utils/aimsun/aimsun_props.csv")
+ap = Aimsun_Params("/home/damian/sa_flow/flow/flow/utils/aimsun/aimsun_props.csv")
 green_phases = {}
 model = gk.GKSystem.getSystem().getActiveModel()
 

@@ -8,17 +8,17 @@ from flow.utils.rllib import FlowParamsEncoder
 from flow.utils.registry import make_create_env
 from flow.core.params import AimsunParams, NetParams, VehicleParams, EnvParams, InitialConfig
 
-from multi_light import CoordinatedNetwork, MultiLightEnv, ADDITIONAL_ENV_PARAMS
+from single_light import CoordinatedNetwork, SingleLightEnv, ADDITIONAL_ENV_PARAMS
 
 try:
     from ray.rllib.agents.agent import get_agent_class
 except ImportError:
     from ray.rllib.agents.registry import get_agent_class
 
-from gym.spaces import Box, Tuple, Discrete
-from ray.rllib.agents.ppo.ppo_policy import PPOTFPolicy
-from ray.tune.registry import register_env
-from ray import tune
+#from gym.spaces import Box, Tuple, Discrete
+#from ray.rllib.agents.ppo.ppo_policy import PPOTFPolicy
+#from ray.tune.registry import register_env
+#from ray import tune
 
 SIM_STEP = 1  # copy to run.py #sync time
 
@@ -28,7 +28,7 @@ DETECTOR_STEP = 900  # copy to run.py #Cj: every 15 minutes
 TIME_HORIZON = 3600*4 - DETECTOR_STEP  # 14400
 HORIZON = int(TIME_HORIZON//SIM_STEP)  # 18000
 
-RLLIB_N_CPUS = 8
+RLLIB_N_CPUS = 2
 RLLIB_HORIZON = int(TIME_HORIZON//DETECTOR_STEP)  # 16
 
 RLLIB_N_ROLLOUTS = 3  # copy to coordinated_lights.py
@@ -38,7 +38,7 @@ net_params = NetParams(template=os.path.abspath("scenario_one_hour.ang"))
 initial_config = InitialConfig()
 vehicles = VehicleParams()
 env_params = EnvParams(horizon=HORIZON,
-                       warmup_steps= int(np.ceil(120/DETECTOR_STEP)), # 1
+                       warmup_steps=int(np.ceil(120/DETECTOR_STEP)),  # 1
                        sims_per_step=int(DETECTOR_STEP/SIM_STEP),  # 900
                        additional_params=ADDITIONAL_ENV_PARAMS)
 sim_params = AimsunParams(sim_step=SIM_STEP,
@@ -50,8 +50,8 @@ sim_params = AimsunParams(sim_step=SIM_STEP,
 
 
 flow_params = dict(
-    exp_tag="mans_allnodes_dlt_trial1",
-    env_name=MultiLightEnv,
+    exp_tag="sa_atc_trial1",
+    env_name=SingleLightEnv,
     network=CoordinatedNetwork,
     simulator='aimsun',
     sim=sim_params,
@@ -60,32 +60,6 @@ flow_params = dict(
     veh=vehicles,
     initial=initial_config,
 )
-
-create_env, gym_name = make_create_env(params=flow_params)
-# Register as rllib env
-register_env(gym_name, create_env)
-
-test_env = create_env()
-obs_space = test_env.observation_space
-act_space = test_env.action_space
-
-def gen_policy(act_space):
-    """Generate a policy in RLlib."""
-    return PPOTFPolicy, obs_space, act_space, {}
-
-
-POLICY_GRAPHS = {'3329': gen_policy(Tuple(7*[Discrete(80,)]+ (2)*[Discrete(1)])),
-                 '3344': gen_policy(Tuple(9*[Discrete(80,)])),
-                 '3370': gen_policy(Tuple(5*[Discrete(80,)]+ (4)*[Discrete(1)])),
-                 '3341': gen_policy(Tuple(5*[Discrete(80,)]+ (4)*[Discrete(1)])),
-                 '3369': gen_policy(Tuple(1*[Discrete(80,)]+ (8)*[Discrete(1)]))
-                 }
-
-POLICIES_TO_TRAIN = ['3329','3344', '3370', '3341', '3369']
-
-def policy_mapping_fn(agent_id):
-    """Map a policy in RLlib."""
-    return agent_id
 
 
 def setup_exps(version=0):
@@ -105,12 +79,12 @@ def setup_exps(version=0):
     agent_cls = get_agent_class(alg_run)
     config = agent_cls._default_config.copy()
     config["num_workers"] = RLLIB_N_CPUS
-    config["sgd_minibatch_size"] = 32 # 16
+    config["sgd_minibatch_size"] = RLLIB_HORIZON
     config["train_batch_size"] = RLLIB_HORIZON * RLLIB_N_ROLLOUTS  # 16*3
     config["sample_batch_size"] = RLLIB_HORIZON * RLLIB_N_ROLLOUTS
     config["model"].update({"fcnet_hiddens": [64, 64, 64]})
     config["use_gae"] = True
-    config["lambda"] = 0.97
+    config["lambda"] = 0.96
     config["kl_target"] = 0.02
     config["num_sgd_iter"] = 10
     config['clip_actions'] = False  # (ev) temporary ray bug
@@ -126,20 +100,14 @@ def setup_exps(version=0):
     config['env_config']['flow_params'] = flow_json
     config['env_config']['run'] = alg_run
 
-    # multiagent configuration
-    print("policy_graphs", POLICY_GRAPHS)
-    config['multiagent'].update({'policies': POLICY_GRAPHS})
-    config['multiagent'].update(
-            {'policy_mapping_fn': tune.function(policy_mapping_fn)})
-    config['multiagent'].update({'policies_to_train': POLICIES_TO_TRAIN})
-
-    #create_env, gym_name = make_create_env(params=flow_params)
+    create_env, gym_name = make_create_env(params=flow_params, version=version)
+    ray.tune.registry.register_env(gym_name, create_env)
 
     return alg_run, gym_name, config
 
 
 if __name__ == "__main__":
-    ray.init(num_cpus=RLLIB_N_CPUS + 1, object_store_memory=int(1e8))
+    ray.init(num_cpus=RLLIB_N_CPUS + 1, object_store_memory=int(1e9))
 
     alg_run, gym_name, config = setup_exps()
     trials = ray.tune.run_experiments({
@@ -155,7 +123,7 @@ if __name__ == "__main__":
             "stop": {
                 "training_iteration": RLLIB_TRAINING_ITERATIONS,
             },
-            #"restore": '/home/damian/ray_results/multi_light_trial1/PPO_MultiLightEnv-v0_aa8aa4f8_2020-09-30_06-10-40u92vq2gv/checkpoint_1728/checkpoint-1728',
+            # "restore": '/home/damian/ray_results/multi_light_trial1/PPO_MultiLightEnv-v0_aa8aa4f8_2020-09-30_06-10-40u92vq2gv/checkpoint_1728/checkpoint-1728',
             # "local_dir": os.path.abspath("./ray_results"),
             "keep_checkpoints_num": 7,
             "checkpoint_score_attr": "episode_reward_mean"

@@ -19,7 +19,7 @@ from PyANGKernel import *  # noqa
 import AAPI as aimsun_api  # noqa
 from aimsun_props import Aimsun_Params, Export_Params
 
-ap = Aimsun_Params('/home/damian/ma_flow/flow/flow/utils/aimsun/aimsun_props.csv')
+ap = Aimsun_Params('/home/damian/sa_flow/flow/flow/utils/aimsun/aimsun_props.csv')
 ## Export files
 writeFlag = False
 
@@ -28,7 +28,7 @@ PORT = int(model.getAuthor())
 entered_vehicles = []
 exited_vehicles = []
 
-target_nodes = [3329, 3344, 3370, 3341, 3369] 
+target_nodes = [3344] 
 start_time = {} #[0]*2
 ut_time = {} #[0]*2
 green_phases = {}
@@ -51,13 +51,6 @@ except socket.error as e:
         print(e)
 
 s.close()
-
-
-#green_phases = dict.fromkeys(target_nodes)
-#starting_phases = dict.fromkeys(target_nodes)
-#time_consumed = dict.fromkeys(target_nodes,0)
-#occurence = dict.fromkeys(target_nodes,0)
-#phaseUtil = dict.fromkeys(target_nodes,0)
 
 for node_id in target_nodes:
     time_consumed[node_id] = {}
