@@ -2,7 +2,7 @@
 .. contents:: Table of contents
 
 Local Installation of Flow
-==========================
+==================
 
 To get Flow running, you need three things: Flow,
 
@@ -108,28 +108,10 @@ Note that, if the above commands did not work, you may need to run
 ``source ~/.bashrc``  or open a new terminal to update your $PATH variable.
 
 *Troubleshooting*:
-If you are a Mac user and the above command gives you the error
-``FXApp:openDisplay: unable to open display :0.0``, make sure to open the
-application XQuartz.
+If you are a Mac user and the above command gives you the error ``FXApp:openDisplay: unable to open display :0.0``, make sure to open the application XQuartz.
 
-*Troubleshooting*:
-If you are a Mac user and the above command gives you the error
-``Segmentation fault: 11``, make sure to reinstall ``fox`` using brew.
-::
-
-  # Uninstall Catalina bottle of fox:
-  $ brew uninstall --ignore-dependencies fox
-
-  # Edit brew Formula of fox:
-  $ brew edit fox
-
-  # Comment out or delete the following line: sha256 "c6697be294c9a0458580564d59f8db32791beb5e67a05a6246e0b969ffc068bc" => :catalina
-  # Install Mojave bottle of fox:
-  $ brew install fox
-
-
-Testing your SUMO and Flow installation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Testing your installation
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Once the above modules have been successfully installed, we can test the
 installation by running a few examples. Before trying to run any examples, be
@@ -142,17 +124,17 @@ sure to enter your conda environment by typing:
 Let’s see some traffic action:
 
 ::
-
-    python examples/simulate.py ring
+    
+    python examples/sumo/sugiyama.py
 
 Running the following should result in the loading of the SUMO GUI.
 Click the run button and you should see unstable traffic form after a
 few seconds, a la (Sugiyama et al, 2008). This means that you have Flow
-properly configured with SUMO!
+properly configured with SUMO and Flow!
 
 
 (Optional) Installing Aimsun
-----------------------------
+-----------------
 
 In addition to SUMO, Flow supports the use of the traffic simulator "Aimsun".
 In order setup Flow with Aimsun, you will first need to install Aimsun. This
@@ -169,10 +151,7 @@ during the execution of various tasks. The path should look something like:
     export AIMSUN_NEXT_PATH="/home/user/Aimsun_Next_X_Y_Z/"                   # Linux
     export AIMSUN_NEXT_PATH="/Applications/Aimsun Next.app/Contents/MacOS/"   # OS X
 
-`Note for Mac users:` when you download Aimsun, you will get a folder named
-"Programming". You need to rename it to "programming" (all lowercase) and to
-move it inside the "Aimsun Next.app/Contents/MacOS/" directory so that the
-python API can work.
+`Note for Mac users:` when you download Aimsun, you will get a folder named "Programming". You need to rename it to "programming" (all lowercase) and to move it inside the "Aimsun Next.app/Contents/MacOS/" directory so that the python API can work.
 
 In addition, being that Aimsun's python API is written to support Python 2.7.4,
 we will need to create a Python 2.7.4 conda environment that Aimsun can refer
@@ -199,15 +178,15 @@ The latter command should return an output similar to:
 
     /path/to/envs/aimsun_flow/bin/python
 
-Copy the path up until right before /lib (i.e. /path/to/envs/aimsun_flow) and
+Copy the path up until right before /lib (i.e. /path/to/envs/aimsun_flow/bin/python) and
 place it under the `AIMSUN_SITEPACKAGES` variable in your bashrc, like this:
 
 ::
 
-    export AIMSUN_SITEPACKAGES="/path/to/envs/aimsun_flow"
+    export AIMSUN_SITEPACKAGES="/path/to/envs/aimsun_flow/bin/python"
 
-Testing your Aimsun installation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Testing your installation
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To test that you installation was successful, you can try running one of the
 Aimsun examples within the Flow main directory. In order to do so, you need
@@ -217,13 +196,8 @@ to activate the `flow` env. Type:
 
     source deactivate aimsun_flow
     source activate flow
-    python examples/simulate.py ring --aimsun
+    python examples/aimsun/sugiyama.py
 
-*Troubleshootig for Ubuntu users with Aimsun 8.4*: when you run the above
-example, you may get a subprocess.Popen error ``OSError: [Errno 8] Exec format error:``.
-To fix this, go to the `Aimsun Next` main directory, open the `Aimsun_Next`
-binary with a text editor and add the shebang to the first line of the script
-``#!/bin/sh``.
 
 (Optional) Install Ray RLlib
 ----------------------------
@@ -235,11 +209,10 @@ RLlib is one such library.
 First visit <https://github.com/flow-project/ray/blob/master/doc/source/installation.rst> and
 install the required packages.
 
-If you are not intending to develop RL algorithms or customize rllib you don't
-need to do anything, Ray was installed when you created the conda environment.
+If you are not intending to develop RL algorithms or customize rllib you don't need to do anything,
+Ray was installed when you created the conda environment.
 
-If you are intending to modify Ray, the installation process for this library
-is as follows:
+If you are intending to modify Ray, the installation process for this library is as follows:
 
 ::
 
@@ -253,8 +226,22 @@ required libraries as specified at
 <http://ray.readthedocs.io/en/latest/installation.html> and
 then follow the setup instructions.
 
-Testing your RLlib installation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+(Optional) Install Stable Baselines
+----------------------------
+
+An additional library that Flow supports is the fork of OpenAI's Baselines, Stable-Baselines.
+First visit <https://stable-baselines.readthedocs.io/en/master/guide/install.html> and
+install the required packages and pip install the stable baselines package as described in their
+installation instructions.
+
+You can test your installation by running
+
+::
+
+    python examples/stable_baselines/stabilizing_the_ring.py
+
+Testing your installation
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 See `getting started with RLlib <http://ray.readthedocs.io/en/latest/rllib.html#getting-started>`_ for sample commands.
 
@@ -268,15 +255,10 @@ In order to test run an Flow experiment in RLlib, try the following command:
 
 ::
 
-    python examples/train.py singleagent_ring
-
+    python examples/rllib/stabilizing_the_ring.py
 
 If it does not fail, this means that you have Flow properly configured with
 RLlib.
-
-
-Visualizing with Tensorboard
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To visualize the training progress:
 
@@ -290,59 +272,15 @@ If tensorboard is not installed, you can install with pip:
 
     pip install tensorboard
 
-For information on how to deploy a cluster, refer to the
-`Ray instructions <http://ray.readthedocs.io/en/latest/autoscaling.html>`_.
-The basic workflow is running the following locally, ssh-ing into the host
-machine, and starting jobs from there.
+For information on how to deploy a cluster, refer to the `Ray instructions <http://ray.readthedocs.io/en/latest/autoscaling.html>`_.
+The basic workflow is running the following locally, ssh-ing into the host machine, and starting
+jobs from there.
 
 ::
 
     pip install boto3
     ray create-or-update scripts/ray_autoscale.yaml
     ray teardown scripts/ray_autoscale.yaml
-
-
-(Optional) Install Stable Baselines
------------------------------------
-
-An additional library that Flow supports is the fork of OpenAI's Baselines, Stable-Baselines.
-First visit <https://stable-baselines.readthedocs.io/en/master/guide/install.html> and
-install the required packages and pip install the stable baselines package as described in their
-installation instructions.
-
-Testing your Stable Baselines installation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-You can test your installation by running
-
-::
-
-    python examples/train.py singleagent_ring --rl_trainer Stable-Baselines
-
-
-(Optional) Install h-baselines
-------------------------------
-
-h-baselines is another variant of stable-baselines that support the use of
-single-agent, multiagent, and hierarchical policies. To install h-baselines,
-run the following commands:
-
-::
-
-    git clone https://github.com/AboudyKreidieh/h-baselines.git
-    cd h-baselines
-    source activate flow  # if using a Flow environment
-    pip install -e .
-
-
-Testing your h-baselines installation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-You can test your installation by running
-
-::
-
-    python examples/train.py singleagent_ring --rl_trainer h-baselines
 
 
 (Optional) Direct install of SUMO from GitHub
@@ -407,22 +345,16 @@ If you have Ubuntu 14.04+, run the following command
 
 
 Virtual installation of Flow (using docker containers)
-======================================================
+================================
 
 To install a containerized Flow stack, run:
-
 ::
-
     docker run -d -p 5901:5901 -p 6901:6901 fywu85/flow-desktop:latest
 
 To access the docker container, go to the following URL and enter the default password `password`:
-
 ::
-
     http://localhost:6901/vnc.html
 
 To use the Jupyter Notebook inside the container, run:
-
 ::
-
     jupyter notebook --ip=127.0.0.1

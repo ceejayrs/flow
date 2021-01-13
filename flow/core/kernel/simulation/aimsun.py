@@ -2,6 +2,7 @@
 from flow.core.kernel.simulation.base import KernelSimulation
 from flow.utils.aimsun.api import FlowAimsunAPI
 import os.path as osp
+import os
 import csv
 from flow.core.util import ensure_dir
 
@@ -129,3 +130,39 @@ class AimsunKernelSimulation(KernelSimulation):
         except OSError:
             # in case no simulation originally existed (used by the visualizer)
             pass
+
+    def reset_simulation(self):
+        """
+        Resets the simulation but doesn't close AIMSUN.
+        """
+        self.kernel_api.reset_simulation()
+
+    def set_statistical_interval(self, hour, minute, sec):
+        """
+        Sets the statistical interval for the scenario
+
+        Parameters
+        ----------
+        hour : int
+            interval in hours
+        minute : int
+            interval in minutes
+        sec : int
+            interval in seconds
+        """
+        return self.kernel_api.set_statistical_interval(hour, minute, sec)
+
+    def set_detection_interval(self, hour, minute, sec):
+        """
+        Sets the detection interval for the scenario
+
+        Parameters
+        ----------
+        hour : int
+            interval in hours
+        minute : int
+            interval in minutes
+        sec : int
+            interval in seconds
+        """
+        return self.kernel_api.set_detection_interval(hour, minute, sec)

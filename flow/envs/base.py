@@ -1,6 +1,5 @@
 """Base environment class. This is the parent of all other environments."""
 
-from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 import os
 import atexit
@@ -8,8 +7,6 @@ import time
 import traceback
 import numpy as np
 import random
-import shutil
-import subprocess
 from flow.renderer.pyglet_renderer import PygletRenderer as Renderer
 from flow.utils.flow_warnings import deprecated_attribute
 
@@ -27,7 +24,7 @@ from flow.core.kernel import Kernel
 from flow.utils.exceptions import FatalFlowError
 
 
-class Env(gym.Env, metaclass=ABCMeta):
+class Env(gym.Env):
     """Base environment class.
 
     Provides the interface for interacting with various aspects of a traffic
@@ -130,10 +127,7 @@ class Env(gym.Env, metaclass=ABCMeta):
         self.network = scenario if scenario is not None else network
         self.net_params = self.network.net_params
         self.initial_config = self.network.initial_config
-        self.sim_params = deepcopy(sim_params)
-        # check whether we should be rendering
-        self.should_render = self.sim_params.render
-        self.sim_params.render = False
+        self.sim_params = sim_params
         time_stamp = ''.join(str(time.time()).split('.'))
         if os.environ.get("TEST_FLAG", 0):
             # 1.0 works with stress_test_start 10k times
@@ -157,7 +151,7 @@ class Env(gym.Env, metaclass=ABCMeta):
 
         # create the Flow kernel
         self.k = Kernel(simulator=self.simulator,
-                        sim_params=self.sim_params)
+                        sim_params=sim_params)
 
         # use the network class's network parameters to generate the necessary
         # network components within the network kernel
@@ -170,7 +164,7 @@ class Env(gym.Env, metaclass=ABCMeta):
         # the network kernel as an input in order to determine what network
         # needs to be simulated.
         kernel_api = self.k.simulation.start_simulation(
-            network=self.k.network, sim_params=self.sim_params)
+            network=self.k.network, sim_params=sim_params)
 
         # pass the kernel api to the kernel and it's subclasses
         self.k.pass_api(kernel_api)
@@ -220,10 +214,7 @@ class Env(gym.Env, metaclass=ABCMeta):
             # render a frame
             self.render(reset=True)
         elif self.sim_params.render in [True, False]:
-            # default to sumo-gui (if True) or sumo (if False)
-            if (self.sim_params.render is True) and self.sim_params.save_render:
-                self.path = os.path.expanduser('~')+'/flow_rendering/' + self.network.name
-                os.makedirs(self.path, exist_ok=True)
+            pass  # default to sumo-gui (if True) or sumo (if False)
         else:
             raise FatalFlowError(
                 'Mode %s is not supported!' % self.sim_params.render)
@@ -396,9 +387,8 @@ class Env(gym.Env, metaclass=ABCMeta):
 
         # test if the environment should terminate due to a collision or the
         # time horizon being met
-        done = (self.time_counter >= self.env_params.sims_per_step *
-                (self.env_params.warmup_steps + self.env_params.horizon)
-                or crash)
+        done = (self.time_counter >= self.env_params.warmup_steps +
+                self.env_params.horizon)  # or crash
 
         # compute the info for each agent
         infos = {}
@@ -430,13 +420,6 @@ class Env(gym.Env, metaclass=ABCMeta):
         """
         # reset the time counter
         self.time_counter = 0
-
-        # Now that we've passed the possibly fake init steps some rl libraries
-        # do, we can feel free to actually render things
-        if self.should_render:
-            self.sim_params.render = True
-            # got to restart the simulation to make it actually display anything
-            self.restart_simulation(self.sim_params)
 
         # warn about not using restart_instance when using inflows
         if len(self.net_params.inflows.get()) > 0 and \
@@ -487,9 +470,6 @@ class Env(gym.Env, metaclass=ABCMeta):
                 self.k.vehicle.remove(veh_id)
             except (FatalTraCIError, TraCIException):
                 print("Error during start: {}".format(traceback.format_exc()))
-
-        # do any additional resetting of the vehicle class needed
-        self.k.vehicle.reset()
 
         # reintroduce the initial vehicles to the network
         for veh_id in self.initial_ids:
@@ -615,11 +595,9 @@ class Env(gym.Env, metaclass=ABCMeta):
         rl_clipped = self.clip_actions(rl_actions)
         self._apply_rl_actions(rl_clipped)
 
-    @abstractmethod
     def _apply_rl_actions(self, rl_actions):
-        pass
+        raise NotImplementedError
 
-    @abstractmethod
     def get_state(self):
         """Return the state of the simulation as perceived by the RL agent.
 
@@ -631,10 +609,9 @@ class Env(gym.Env, metaclass=ABCMeta):
             information on the state of the vehicles, which is provided to the
             agent
         """
-        pass
+        raise NotImplementedError
 
     @property
-    @abstractmethod
     def action_space(self):
         """Identify the dimensions and bounds of the action space.
 
@@ -645,10 +622,9 @@ class Env(gym.Env, metaclass=ABCMeta):
         gym Box or Tuple type
             a bounded box depicting the shape and bounds of the action space
         """
-        pass
+        raise NotImplementedError
 
     @property
-    @abstractmethod
     def observation_space(self):
         """Identify the dimensions and bounds of the observation space.
 
@@ -660,7 +636,7 @@ class Env(gym.Env, metaclass=ABCMeta):
             a bounded box depicting the shape and bounds of the observation
             space
         """
-        pass
+        raise NotImplementedError
 
     def compute_reward(self, rl_actions, **kwargs):
         """Reward function for the RL agent(s).
@@ -690,19 +666,11 @@ class Env(gym.Env, metaclass=ABCMeta):
         """
         try:
             # close everything within the kernel
+            print('terminate')
             self.k.close()
             # close pyglet renderer
             if self.sim_params.render in ['gray', 'dgray', 'rgb', 'drgb']:
                 self.renderer.close()
-            # generate video
-            elif (self.sim_params.render is True) and self.sim_params.save_render:
-                images_dir = self.path.split('/')[-1]
-                speedup = 10  # multiplier: renders video so that `speedup` seconds is rendered in 1 real second
-                fps = speedup//self.sim_step
-                p = subprocess.Popen(["ffmpeg", "-y", "-r", str(fps), "-i", self.path+"/frame_%06d.png",
-                                      "-pix_fmt", "yuv420p", "%s/../%s.mp4" % (self.path, images_dir)])
-                p.wait()
-                shutil.rmtree(self.path)
         except FileNotFoundError:
             # Skip automatic termination. Connection is probably already closed
             print(traceback.format_exc())
@@ -732,9 +700,6 @@ class Env(gym.Env, metaclass=ABCMeta):
                 if len(self.frame_buffer) > buffer_length:
                     self.frame_buffer.pop(0)
                     self.sights_buffer.pop(0)
-        elif (self.sim_params.render is True) and self.sim_params.save_render:
-            # sumo-gui render
-            self.k.kernel_api.gui.screenshot("View #0", self.path+"/frame_%06d.png" % self.time_counter)
 
     def pyglet_render(self):
         """Render a frame using pyglet."""

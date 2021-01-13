@@ -4,7 +4,7 @@
 - **Observation Dimension**: (339, )
 - **Horizon**: 400 steps
 """
-from flow.envs import TrafficLightGridBenchmarkEnv
+from flow.envs import TrafficLightGridPOEnv
 from flow.networks import TrafficLightGridNetwork
 from flow.core.params import SumoParams, EnvParams, InitialConfig, NetParams, \
     InFlows, SumoCarFollowingParams
@@ -68,7 +68,7 @@ flow_params = dict(
     exp_tag="grid_0",
 
     # name of the flow environment the experiment is running on
-    env_name=TrafficLightGridBenchmarkEnv,
+    env_name=TrafficLightGridPOEnv,
 
     # name of the network class the experiment is running on
     network=TrafficLightGridNetwork,

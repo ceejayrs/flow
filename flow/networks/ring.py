@@ -37,7 +37,7 @@ class RingNetwork(Network):
     >>> from flow.core.params import NetParams
     >>> from flow.core.params import VehicleParams
     >>> from flow.core.params import InitialConfig
-    >>> from flow.networks import RingNetwork
+    >>> from flow.scenarios import RingNetwork
     >>>
     >>> network = RingNetwork(
     >>>     name='ring_road',

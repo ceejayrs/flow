@@ -13,9 +13,8 @@ from flow.envs import Env, TestEnv
 
 from tests.setup_scripts import ring_road_exp_setup, highway_exp_setup
 import os
-import gym.spaces as spaces
-from gym.spaces.box import Box
 import numpy as np
+import gym.spaces as spaces
 
 os.environ["TEST_FLAG"] = "True"
 
@@ -24,41 +23,6 @@ WHITE = (255, 255, 255)
 CYAN = (0, 255, 255)
 RED = (255, 0, 0)
 YELLOW = (255, 255, 0)
-
-
-class TestFailRLActionsEnv(Env):
-    """Test environment designed to fail _apply_rl_actions not-implemented test."""
-
-    @property
-    def action_space(self):
-        """See parent class."""
-        return Box(low=0, high=0, shape=(0,), dtype=np.float32)  # pragma: no cover
-
-    @property
-    def observation_space(self):
-        """See parent class."""
-        return Box(low=0, high=0, shape=(0,), dtype=np.float32)  # pragma: no cover
-
-    def get_state(self, **kwargs):
-        """See class definition."""
-        return np.array([])  # pragma: no cover
-
-
-class TestFailGetStateEnv(Env):
-    """Test environment designed to fail get_state not-implemented test."""
-
-    @property
-    def action_space(self):
-        """See parent class."""
-        return Box(low=0, high=0, shape=(0,), dtype=np.float32)  # pragma: no cover
-
-    @property
-    def observation_space(self):
-        """See parent class."""
-        return Box(low=0, high=0, shape=(0,), dtype=np.float32)  # pragma: no cover
-
-    def _apply_rl_actions(self, rl_actions):
-        return  # pragma: no cover
 
 
 class TestShuffle(unittest.TestCase):
@@ -83,7 +47,7 @@ class TestShuffle(unittest.TestCase):
         initial_config = InitialConfig(x0=5, shuffle=True)
 
         # create the environment and network classes for a ring road
-        self.env, _, _ = ring_road_exp_setup(
+        self.env, _ = ring_road_exp_setup(
             env_params=env_params,
             initial_config=initial_config,
             vehicles=vehicles)
@@ -123,7 +87,7 @@ class TestEmissionPath(unittest.TestCase):
         sim_params = SumoParams()
 
         # create the environment and network classes for a ring road
-        self.env, _, _ = ring_road_exp_setup(sim_params=sim_params)
+        self.env, _ = ring_road_exp_setup(sim_params=sim_params)
 
     def tearDown(self):
         # terminate the traci instance
@@ -169,7 +133,7 @@ class TestApplyingActionsWithSumo(unittest.TestCase):
             num_vehicles=5)
 
         # create the environment and network classes for a ring road
-        self.env, _, _ = ring_road_exp_setup(
+        self.env, _ = ring_road_exp_setup(
             net_params=net_params, env_params=env_params, vehicles=vehicles)
 
     def tearDown(self):
@@ -300,7 +264,7 @@ class TestWarmUpSteps(unittest.TestCase):
         # than one
         env_params = EnvParams(
             warmup_steps=warmup_step, additional_params=ADDITIONAL_ENV_PARAMS)
-        env, _, _ = ring_road_exp_setup(env_params=env_params)
+        env, _ = ring_road_exp_setup(env_params=env_params)
 
         # time before running a reset
         t1 = 0
@@ -325,7 +289,7 @@ class TestSimsPerStep(unittest.TestCase):
         env_params = EnvParams(
             sims_per_step=sims_per_step,
             additional_params=ADDITIONAL_ENV_PARAMS)
-        env, _, _ = ring_road_exp_setup(env_params=env_params)
+        env, _ = ring_road_exp_setup(env_params=env_params)
 
         env.reset()
         # time before running a step
@@ -347,34 +311,28 @@ class TestAbstractMethods(unittest.TestCase):
     """
 
     def setUp(self):
-        self.env, self.network, _ = ring_road_exp_setup()
-        self.sim_params = SumoParams()  # FIXME: make ambiguous
-        self.env_params = EnvParams()
+        env, network = ring_road_exp_setup()
+        sim_params = SumoParams()  # FIXME: make ambiguous
+        env_params = EnvParams()
+        self.env = Env(sim_params=sim_params,
+                       env_params=env_params,
+                       network=network)
 
-    def test_abstract_base_class(self):
-        """Checks that instantiating abstract base class raises an error."""
-        with self.assertRaises(TypeError):
-            Env(sim_params=self.sim_params,
-                env_params=self.env_params,
-                network=self.network)
+    def tearDown(self):
+        self.env.terminate()
+        self.env = None
 
     def test_get_state(self):
-        """Checks that instantiating without get_state implemented
-        raises an error.
-        """
-        with self.assertRaises(TypeError):
-            TestFailGetStateEnv(sim_params=self.sim_params,
-                                env_params=self.env_params,
-                                network=self.network)
+        """Checks that get_state raises an error."""
+        self.assertRaises(NotImplementedError, self.env.get_state)
+
+    def test_compute_reward(self):
+        """Checks that compute_reward returns 0."""
+        self.assertEqual(self.env.compute_reward([]), 0)
 
     def test__apply_rl_actions(self):
-        """Checks that instantiating without _apply_rl_actions
-        implemented raises an error.
-        """
-        with self.assertRaises(TypeError):
-            TestFailRLActionsEnv(sim_params=self.sim_params,
-                                 env_params=self.env_params,
-                                 network=self.network)
+        self.assertRaises(NotImplementedError, self.env._apply_rl_actions,
+                          rl_actions=None)
 
 
 class TestVehicleColoring(unittest.TestCase):
@@ -385,7 +343,7 @@ class TestVehicleColoring(unittest.TestCase):
         # add an RL vehicle to ensure that its color will be distinct
         vehicles.add("rl", acceleration_controller=(RLController, {}),
                      num_vehicles=1)
-        _, network, _ = ring_road_exp_setup(vehicles=vehicles)
+        _, network = ring_road_exp_setup(vehicles=vehicles)
         env = TestEnv(EnvParams(), SumoParams(), network)
         env.reset()
 
@@ -463,7 +421,7 @@ class TestClipBoxActions(unittest.TestCase):
     """
 
     def setUp(self):
-        env, network, _ = ring_road_exp_setup()
+        env, network = ring_road_exp_setup()
         sim_params = SumoParams()
         env_params = EnvParams()
         self.env = BoxEnv(
@@ -511,13 +469,13 @@ class TestClipTupleActions(unittest.TestCase):
     """
 
     def setUp(self):
-        env, network, _ = ring_road_exp_setup()
+        env, scenario = ring_road_exp_setup()
         sim_params = SumoParams()
         env_params = EnvParams()
         self.env = TupleEnv(
             sim_params=sim_params,
             env_params=env_params,
-            network=network)
+            scenario=scenario)
 
     def tearDown(self):
         self.env.terminate()

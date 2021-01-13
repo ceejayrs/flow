@@ -14,10 +14,9 @@ from flow.controllers.rlcontroller import RLController
 from flow.controllers.base_controller import BaseController
 from flow.controllers.car_following_models import CFMController, \
     BCMController, OVMController, LinearOVM, IDMController, \
-    SimCarFollowingController, LACController, GippsController, \
-    BandoFTLController
+    SimCarFollowingController, LACController
 from flow.controllers.velocity_controllers import FollowerStopper, \
-    PISaturation, NonLocalFollowerStopper
+    PISaturation
 
 # lane change controllers
 from flow.controllers.base_lane_changing_controller import \
@@ -28,14 +27,12 @@ from flow.controllers.lane_change_controllers import StaticLaneChanger, \
 # routing controllers
 from flow.controllers.base_routing_controller import BaseRouter
 from flow.controllers.routing_controllers import ContinuousRouter, \
-    GridRouter, BayBridgeRouter, I210Router
+    GridRouter, BayBridgeRouter
 
 __all__ = [
     "RLController", "BaseController", "BaseLaneChangeController", "BaseRouter",
     "CFMController", "BCMController", "OVMController", "LinearOVM",
     "IDMController", "SimCarFollowingController", "FollowerStopper",
     "PISaturation", "StaticLaneChanger", "SimLaneChangeController",
-    "ContinuousRouter", "GridRouter", "BayBridgeRouter", "LACController",
-    "GippsController", "NonLocalFollowerStopper", "BandoFTLController",
-    "I210Router"
+    "ContinuousRouter", "GridRouter", "BayBridgeRouter", "LACController"
 ]

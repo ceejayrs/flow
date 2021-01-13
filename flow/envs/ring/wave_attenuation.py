@@ -207,7 +207,12 @@ class WaveAttenuationEnv(Env):
             render=self.sim_params.render)
 
         # perform the generic reset function
-        return super().reset()
+        observation = super().reset()
+
+        # reset the timer to zero
+        self.time_counter = 0
+
+        return observation
 
 
 class WaveAttenuationPOEnv(WaveAttenuationEnv):

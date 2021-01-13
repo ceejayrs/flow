@@ -50,27 +50,27 @@ class TestCollisions(unittest.TestCase):
 
         net_params = NetParams(additional_params=additional_net_params)
 
-        env, _, flow_params = traffic_light_grid_mxn_exp_setup(
+        env, _ = traffic_light_grid_mxn_exp_setup(
             row_num=1,
             col_num=1,
             sim_params=sim_params,
             vehicles=vehicles,
             net_params=net_params)
 
-        # create an experiment object
-        exp = Experiment(flow_params)
-        env = exp.env
         # go through the env and set all the lights to green
         for i in range(env.rows * env.cols):
             env.k.traffic_light.set_state(
                 node_id='center' + str(i), state="gggggggggggg")
 
-        exp.run(50)
+        # instantiate an experiment class
+        exp = Experiment(env)
+
+        exp.run(50, 50)
 
     def test_collide_inflows(self):
         """Tests collisions in the presence of inflows."""
         # create the environment and network classes for a ring road
-        sim_params = SumoParams(sim_step=1, render=False, seed=40)
+        sim_params = SumoParams(sim_step=1, render=False)
         total_vehicles = 0
         vehicles = VehicleParams()
         vehicles.add(
@@ -111,23 +111,22 @@ class TestCollisions(unittest.TestCase):
             inflows=inflows,
             additional_params=additional_net_params)
 
-        _, _, flow_params = traffic_light_grid_mxn_exp_setup(
+        env, _ = traffic_light_grid_mxn_exp_setup(
             row_num=1,
             col_num=1,
             sim_params=sim_params,
             vehicles=vehicles,
             net_params=net_params)
 
-        # instantiate an experiment class
-        exp = Experiment(flow_params)
-        env = exp.env
-
         # go through the env and set all the lights to green
         for i in range(env.rows * env.cols):
             env.k.traffic_light.set_state(
                 node_id='center' + str(i), state="gggggggggggg")
 
-        exp.run(50)
+        # instantiate an experiment class
+        exp = Experiment(env)
+
+        exp.run(50, 50)
 
 
 if __name__ == '__main__':

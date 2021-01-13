@@ -1,9 +1,7 @@
 """Contains the base routing controller class."""
 
-from abc import ABCMeta, abstractmethod
 
-
-class BaseRouter(metaclass=ABCMeta):
+class BaseRouter:
     """Base class for routing controllers.
 
     These controllers are used to dynamically change the routes of vehicles
@@ -32,7 +30,6 @@ class BaseRouter(metaclass=ABCMeta):
         self.veh_id = veh_id
         self.router_params = router_params
 
-    @abstractmethod
     def choose_route(self, env):
         """Return the routing method implemented by the controller.
 
@@ -48,4 +45,4 @@ class BaseRouter(metaclass=ABCMeta):
             is returned, the vehicle performs no routing action in the current
             time step.
         """
-        pass
+        raise NotImplementedError

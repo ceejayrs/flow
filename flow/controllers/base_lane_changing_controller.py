@@ -1,9 +1,7 @@
 """Contains the base lane change controller class."""
 
-from abc import ABCMeta, abstractmethod
 
-
-class BaseLaneChangeController(metaclass=ABCMeta):
+class BaseLaneChangeController:
     """Base class for lane-changing controllers.
 
     Instantiates a controller and forces the user to pass a
@@ -38,7 +36,6 @@ class BaseLaneChangeController(metaclass=ABCMeta):
         self.veh_id = veh_id
         self.lane_change_params = lane_change_params
 
-    @abstractmethod
     def get_lane_change_action(self, env):
         """Specify the lane change action to be performed.
 
@@ -58,7 +55,7 @@ class BaseLaneChangeController(metaclass=ABCMeta):
         float or int
             requested lane change action
         """
-        pass
+        raise NotImplementedError
 
     def get_action(self, env):
         """Return the action of the lane change controller.
