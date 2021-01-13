@@ -269,9 +269,9 @@ class SingleLightEnv(Env):
                         occup.append(occupancy)
                     state[(*index, 0)] = flow
                     try:
-                        det_state[(*index, 1)] = sum(occup)/len(occup)
+                        state[(*index, 1)] = sum(occup)/len(occup)
                     except ZeroDivisionError:
-                        det_state[(*index, 1)] = 0
+                        state[(*index, 1)] = 0
 
 
         #print(state)
@@ -280,9 +280,10 @@ class SingleLightEnv(Env):
     def compute_reward(self, rl_actions, **kwargs):
         """Computes the sum of queue lengths at all intersections in the network."""
         reward = 0
+        node_id = self.target_nodes[0]
         node_gUtil = self.k.traffic_light.get_green_util(3344)
         r_queue = 0
-        gUtil = node_gUtil[i]
+        gUtil = node_gUtil
         a1 = 1
         a0 = 0.2
 
@@ -364,6 +365,7 @@ class SingleLightEnv(Env):
         print('-----------------------')
 
         # reset variables
+        node_id = self.target_nodes[0]
         for node_id in self.target_nodes:
             for section_id in self.past_cumul_queue[node_id]:
                 self.past_cumul_queue[node_id][section_id] = 0
