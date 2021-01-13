@@ -4,7 +4,7 @@ import math
 
 from flow.envs import Env
 from flow.networks import Network
-from aimsun_params import Aimsun_Params
+from aimsun_props import Aimsun_Params
 
 ADDITIONAL_ENV_PARAMS = {'target_nodes': [3344],
                          # 'observed_nodes': [3386, 3371, 3362, 3373],
@@ -24,12 +24,12 @@ RLLIB_N_ROLLOUTS = 3  # copy from train_rllib.py
 np.random.seed(1234567890)
 
 ## read csv of Node Parameters
-ap = Aimsun_Params('/home/cjrsantos/flow/examples/aimsun/single_light/aimsun_params.csv')
+ap = Aimsun_Params('/home/cjrsantos/sa_flow/flow/flow/utils/aimsun/aimsun_props.csv')
 
 def rescale_phase_pair(array, NewMin, NewMax):
     rescaled_action = []
     OldMin = 0
-    OldMax = 86
+    OldMax = 80
     OldRange = (OldMax - OldMin)  
     NewRange = (NewMax - NewMin)
     for OldValue in array:
@@ -37,6 +37,19 @@ def rescale_phase_pair(array, NewMin, NewMax):
         rescaled_action.append(NewValue)
     return rescaled_action
 
+def rescale_act(actions_array, target_value, current_value):
+    rescaled_actions = []
+    target_value = round(target_value)
+    for duration in actions_array:
+        if current_value == 0:
+            new_action = 0
+        else:
+            new_action = math.ceil(target_value*duration/current_value)
+        rescaled_actions.append(int(new_action))
+    if sum(rescaled_actions) > target_value:
+        x = sum(rescaled_actions) - target_value
+        rescaled_actions[-1] = int(rescaled_actions[-1] - x)
+    return rescaled_actions
 class SingleLightEnv(Env):
     def __init__(self, env_params, sim_params, network, simulator='aimsun'):
         for param in ADDITIONAL_ENV_PARAMS:
@@ -55,6 +68,7 @@ class SingleLightEnv(Env):
 
         # target intersections
         self.target_nodes = env_params.additional_params["target_nodes"]
+        self.node_id = self.target_nodes[0]
 
         # reset_offset_durations
         for node_id in self.target_nodes:
@@ -64,37 +78,45 @@ class SingleLightEnv(Env):
         self.edge_detector_dict = {}
         self.edges_with_detectors = {}
         self.past_cumul_queue = {}
-        self.detector_lane = {}
-        self.current_phase_timings = []
+        self.current_phase_timings = np.zeros(int(len(self.target_nodes)))
+        #ap_keys = dict.fromkeys(['control_id', 'num_rings', 'green_phases', 'cc_dict', 'sum_interphase', 'max_dict', 'max_p'])
+        #self.aimsun_props = {dict.fromkeys(self.target_nodes, ap_keys)}
+        self.aimsun_props = {}
+        # change to {node_id: {ring:, gp: , cc_dict:, sum_int:, max_dict: , maxp:}}
 
         # get node values
         for node_id in self.target_nodes:
-            self.node_id = node_id
-            self.rep_name, _  = self.k.traffic_light.get_replication_name(node_id)
-            incoming_edges = self.k.traffic_light.get_incoming_edges(node_id)
+            self.aimsun_props[node_id] = {}
+            self.past_cumul_queue[node_id] = {}
             self.edge_detector_dict[node_id] = {}
-            # get initial detector values 
+            self.rep_name, _ = self.k.traffic_light.get_replication_name(node_id)
+            incoming_edges = self.k.traffic_light.get_incoming_edges(node_id)
+
+            # get initial detector values
             for edge_id in incoming_edges:
                 detector_dict = self.k.traffic_light.get_detectors_on_edge(edge_id)
                 through = detector_dict['through']
                 right = detector_dict['right']
                 left = detector_dict['left']
                 advanced = detector_dict['advanced']
-                type_map = {"through":through, "right":right, "left": left, "advanced": advanced}
+                type_map = {"through": through, "right": right, "left": left, "advanced": advanced}
 
-                detector_lane = self.k.traffic_light.get_detector_lanes(edge_id)
-                for _, (d_id,lane) in enumerate(detector_lane.items()):
-                    self.detector_lane[d_id] = lane
                 self.edge_detector_dict[node_id][edge_id] = type_map
-                self.past_cumul_queue[edge_id] = 0
+                self.past_cumul_queue[node_id][edge_id] = 0
             # get control plan params
-            self.control_id, self.num_rings = self.k.traffic_light.get_control_ids(self.node_id)
-            self.green_phases = ap.get_green_phases(self.node_id)
-            self.cc_dict = ap.get_cp_cycle_dict(self.node_id, self.rep_name)
-            self.sum_interphase = ap.get_sum_interphase_per_ring(self.node_id)[0]
-            self.max_dict, self.max_p = ap.get_max_dict(self.node_id,self.rep_name)
-            
-            for phase in self.green_phases:
+
+            control_id, num_rings = self.k.traffic_light.get_control_ids(node_id)  # self.control_id = list, num_rings = list
+            max_dict, max_p = ap.get_max_dict(node_id, self.rep_name)
+
+            self.aimsun_props[node_id]['green_phases'] = ap.get_green_phases(node_id)
+            self.aimsun_props[node_id]['cc_dict'] = ap.get_cp_cycle_dict(node_id, self.rep_name)
+            self.aimsun_props[node_id]['sum_interphase'] = ap.get_sum_interphase_per_ring(node_id)[0]
+            self.aimsun_props[node_id]['control_id'] = control_id
+            self.aimsun_props[node_id]['num_rings'] = num_rings
+            self.aimsun_props[node_id]['max_dict'] = max_dict
+            self.aimsun_props[node_id]['max_p'] = max_p      
+
+            for phase in self.green_phases[self.target_nodes[0]]:
                 phase_duration, maxd, mind = self.k.traffic_light.get_duration_phase(node_id, phase)
                 self.current_phase_timings.append(phase_duration)
                 print('initial phase: {} duration: {} max: {} min: {}'.format(phase, phase_duration, maxd, mind))
@@ -104,7 +126,7 @@ class SingleLightEnv(Env):
     @property
     def action_space(self):
         """See class definition."""
-        return Tuple(((len(self.green_phases)/2) + 1) * (Discrete(86,),)) #5 (probabilities)
+        return Tuple(9 * (Discrete(80,),)) #5 (probabilities)
 
     @property
     def observation_space(self):
@@ -116,58 +138,51 @@ class SingleLightEnv(Env):
 
     def _apply_rl_actions(self, rl_actions):
         # Get control_id & replication name every step
-        self.rep_name,_ = self.k.traffic_light.get_replication_name(self.node_id)
-        self.control_id, self.num_rings = self.k.traffic_light.get_control_ids(self.node_id)
-        self.cc_dict = ap.get_cp_cycle_dict(self.node_id, self.rep_name)
-        self.max_dict, self.max_p = ap.get_max_dict(self.node_id,self.rep_name)
-
         if self.ignore_policy:
             #print('self.ignore_policy is True')
             return
+        node_id = self.node_id
 
-        self.cycle = self.cc_dict[self.control_id]
-        cur_maxdl = self.max_p[self.control_id]
-        cycle = self.cycle - self.sum_interphase
-        actions = np.array(rl_actions).flatten()
-        maxd_list = self.max_dict[cur_maxdl]
+        self.rep_name, _ = self.k.traffic_light.get_replication_name(3344)
 
-        default_actions = np.array(rl_actions).flatten()
-        actions = np.round(rescale_phase_pair(default_actions, 14, 100))
-        # gives percentage for each phase pair
-        prob_barrier = [actions[-1]/113, 1 - (actions[-1]/113)]
-        sum_barrier = [round(prob_barrier[0]*cycle), round(prob_barrier[1]*cycle)]
-        prob_phase = np.array([[actions[0], actions[1]], [actions[2], actions[3]]]) / 113
-        # gives the length of barriers
-        actionf = []  
+        control_id, num_rings = self.k.traffic_light.get_control_ids(node_id)  # self.control_id = list, num_rings = list
+        max_dict, max_p = ap.get_max_dict(node_id, self.rep_name)
 
-        ### probability
-        for i in range(len(prob_phase)): # [[0,1],[2,3]]
-            ring = prob_phase[i] # [0,1]
+        self.aimsun_props[node_id]['cc_dict'] = ap.get_cp_cycle_dict(node_id, self.rep_name)
+        self.aimsun_props[node_id]['control_id'] = control_id
+        self.aimsun_props[node_id]['max_dict'] = max_dict
+        self.aimsun_props[node_id]['max_p'] = max_p
+
+        cycle = self.aimsun_props[node_id]['cc_dict'][control_id]
+        cycle = cycle - self.aimsun_props[node_id]['sum_interphase']
+        phase_list = self.aimsun_props[node_id]['green_phases']
+        cur_maxdl = max_p[control_id]
+        maxd_list = max_dict[cur_maxdl]
+
+        def_actions = np.array(rl_action).flatten()
+        actions = rescale_bar(def_actions,10,90)
+
+        barrier = actions[-1]/100
+        sum_barrier = [round(cycle*barrier), cycle - round(cycle*barrier)]
+        action_rings = [[actions[0:2],actions[2:4]],[actions[4:6],actions[6:8]]]
+        for i in range(len(action_rings)):
+            ring = action_rings[i]
             for j in range(len(ring)):
-                new_phase1, new_phase2 = round(ring[j]*sum_barrier[j]), sum_barrier[j] - round(ring[j]*sum_barrier[j])
-                # Setting minimum green to 5
-                if new_phase1 < 5:
-                    new_phase1 = 5
-                    new_phase2 = sum_barrier[j] - new_phase1
-                elif new_phase2 < 5:
-                    new_phase2 = 5
-                    new_phase1 = sum_barrier[j] - new_phase2
-                phase_pair = [new_phase1, new_phase2]
-                actionf.append(phase_pair)
+                phase_pair = ring[j]
+                if sum(phase_pair) != sum_barrier[j]:
+                    action_rings[i][j] = rescale_act(phase_pair, sum_barrier[j], sum(phase_pair))
 
-        new_actions = np.array(actionf).flatten()
-        phase_list = self.green_phases
-        for phase, action, maxd in zip(phase_list, new_actions, maxd_list):
+        rescaled_actions = [phase for ring in action_rings for pair in ring for phase in pair]
+        #print(node_id, barrier, action_rings, rescaled_actions)
+        for phase, action, maxd in zip(phase_list, rescaled_actions, maxd_list):
             if action:
                 if action > maxd:
                     maxout = action
                 else:
                     maxout = maxd
-                self.k.traffic_light.change_phase_duration(self.node_id, phase, action, maxout)
-                phase_duration, maxd, _ = self.k.traffic_light.get_duration_phase(self.node_id, phase)
+                self.k.traffic_light.change_phase_duration(node_id, phase, action, maxd)
 
-        self.current_phase_timings = new_actions
-        self.sum_barrier = [sum(new_actions[0:2]), sum(new_actions[2:4])]
+        self.current_phase_timings = rescaled_actions
 
     def get_state(self, rl_id=None, **kwargs):
         """See class definition."""
@@ -245,8 +260,7 @@ class SingleLightEnv(Env):
         ## change to util per phase, per node
         reward = 0
         r_queue = 0
-        util_per_phase = self.k.traffic_light.get_green_util(self.node_id)
-        gUtil = sum(util_per_phase)
+        gUtil = self.k.traffic_light.get_green_util(self.node_id)[0]
         a1 = 1
         a0 = 0.2
 
@@ -261,11 +275,7 @@ class SingleLightEnv(Env):
         new_reward = ((a0*r_queue) + (a1*gUtil))
         reward = - ((new_reward ** 2)*100)
 
-        print(f'{self.k.simulation.time:.0f}','\t', f'{reward:.4f}', '\t',
-              self.current_phase_timings[0],'\t', self.current_phase_timings[1],'\t', self.current_phase_timings[2],'\t', 
-              self.current_phase_timings[3],'\t', self.current_phase_timings[4],'\t', self.current_phase_timings[5],'\t', 
-              self.current_phase_timings[6],'\t', self.current_phase_timings[7],'\t', sum(self.current_phase_timings[4:])+18, self.sum_barrier)
-
+        print(self.node_id, f'{self.k.simulation.time:.0f}','\t', f'{reward:.4f}', '\t', f'{self.current_phase_timings}')
 
         return reward
 

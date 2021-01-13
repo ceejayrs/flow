@@ -48,23 +48,28 @@ class Aimsun_Params:
         # max_dict = dict(zip(maxd_p, maxd_list))
         return max_dict, maxd_p
 
-## Insert function for detectors and for gUtil
+    def get_detector_ids(self, node_id):
+        pass
+
+    def get_start_phases(self, node_id):
+        sp = self.df.loc[self.df.node_id == node_id, 'start_phase'].values[0]
+        start_phases = json.loads(sp)
+        #gp_list = green_phases[0]
+        return start_phases
 
 class Export_Params:
     def __init__(self, rep_name, node_id):
         self.rep_name = str(rep_name) + '_' + str(node_id) + '.csv'
-        self.fieldnames = ['time', 'delay_time','action']
-        with open(self.rep_name,'a') as csvFile:
-            csv_writer = csv.writer(csvFile)
-            csv_writer.writerow([node_id])
+        self.fieldnames = ['time', 'node_id', 'delay_time','action']
 
-    def export_delay_action(self, node_id, delay, action_list, time, timeSta):
+    def export_delay_action(self, node_id, rep_seed, delay, action_list, util_list, r_queue, time, timeSta):
         time = time
         timeSta = timeSta
         ave_app_delay = delay
-        data_list = [time,delay]
-        #data_list.append(time)
-        #data_list.append(delay)
+        data_list = [rep_seed, time, node_id, delay, r_queue]
+
+        for util in util_list:
+            data_list.append(util)
         
         for action in action_list:
             data_list.append(action)
@@ -73,15 +78,22 @@ class Export_Params:
             csv_writer = csv.writer(csvFile)
             csv_writer.writerows([data_list,])
 
+
 ##test
 #print(get_green_phases(3344))
 #print('********************')
-#ap = Aimsun_Params('/home/cjrsantos/flow/examples/aimsun/single_light/aimsun_params.csv')
+#ap = Aimsun_Params('/home/cjrsantos/flow/flow/utils/aimsun/aimsun_props.csv')
 #print(ap.get_cp_cycle_dict(3369,8050315), print(type(ap.get_cp_cycle_dict(3369,8050315))))
 #print('********************')
 #print(get_sum_interphase_per_ring(3344), print(type(get_sum_interphase_per_ring(3344))))
 #print('********************')
 #max_d, max_p = ap.get_max_dict(3344,8050322)
-#cur_mad = max_p[4]
-#ms = max_d[cur_mad]
-#print(ms)
+#target_nodes = [3344,3329,3369]
+#green_phases = dict.fromkeys(target_nodes)
+#starting_phases = dict.fromkeys(target_nodes)
+#
+#for node_id in target_nodes:
+#    green_phase_list = ap.get_green_phases(node_id)
+#    starting_phases_list = ap.get_start_phases(node_id)
+#    starting_phases[node_id] = starting_phases_list
+#print(starting_phases)
