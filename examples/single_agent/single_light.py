@@ -133,7 +133,7 @@ class SingleLightEnv(Env):
     def observation_space(self):  # defined for a single agent
         """See class definition."""
         ap = self.additional_params
-        shape = (ap['num_incoming_edges_per_node']
+        shape = (len(self.target_nodes))*(ap['num_incoming_edges_per_node']
                  * (ap['num_detector_types'])*ap['num_measures'])
         return Box(low=0, high=30, shape=(shape, ), dtype=np.float32)
 
@@ -161,7 +161,7 @@ class SingleLightEnv(Env):
         cur_maxdl = max_p[control_id]
         maxd_list = max_dict[cur_maxdl]
 
-        all_actions = []
+        #all_actions = []
         def_actions = np.array(rl_actions).flatten()
         actions = rescale_bar(def_actions, 10, 90)
 
@@ -233,9 +233,9 @@ class SingleLightEnv(Env):
                     maxout = maxd
                 self.k.traffic_light.change_phase_duration(node_id, phase, action, maxd)
 
-        all_actions.append(rescaled_actions)
+        #all_actions.append(rescaled_actions)
 
-        self.current_phase_timings = all_actions[0]
+        self.current_phase_timings = rescaled_actions
 
     def get_state(self, rl_id=None, **kwargs):
         """See class definition."""
@@ -248,58 +248,53 @@ class SingleLightEnv(Env):
         num_measures = (ap['num_measures'])
         normal = 2000
 
-        obs = {}
-        shape = (num_edges, num_detectors_types, num_measures)
+        shape = (num_nodes, num_edges, num_detectors_types, num_measures)
+        state = np.zeros(shape)
         for i, (node, edge) in enumerate(self.edge_detector_dict.items()):
-            det_state = np.zeros(shape)
             for j, (edge_id, detector_info) in enumerate(edge.items()):
                 for k, (detector_type, detector_ids) in enumerate(detector_info.items()):
                     if detector_type == 'through':
-                        index = (j, 0)
+                        index = (i, j, 0)
                     elif detector_type == 'right':
-                        index = (j, 1)
+                        index = (i, j, 1)
                     elif detector_type == 'left':
-                        index = (j, 2)
+                        index = (i, j, 2)
                     elif detector_type == 'advanced':
-                        index = (j, 3)
+                        index = (i, j, 3)
 
                     flow, occup = 0, []
                     for detector in detector_ids:
                         count, occupancy = self.k.traffic_light.get_detector_count_and_occupancy(int(detector))
                         flow += (count/self.detection_interval)/(normal/3600)
                         occup.append(occupancy)
-                    det_state[(*index, 0)] = flow
+                    state[(*index, 0)] = flow
                     try:
                         det_state[(*index, 1)] = sum(occup)/len(occup)
                     except ZeroDivisionError:
                         det_state[(*index, 1)] = 0
 
-            state = det_state.flatten()
-            obs.update({str(node): state})
-            #ma_state[str(node)] = state
 
         #print(state)
-        return state
+        return state.flatten()
 
     def compute_reward(self, rl_actions, **kwargs):
         """Computes the sum of queue lengths at all intersections in the network."""
         reward = 0
         node_gUtil = self.k.traffic_light.get_green_util(3344)
-        for i, node_id in enumerate(self.target_nodes):
-            r_queue = 0
-            gUtil = node_gUtil[i]
-            a1 = 1
-            a0 = 0.2
+        r_queue = 0
+        gUtil = node_gUtil[i]
+        a1 = 1
+        a0 = 0.2
 
-            for section_id in self.past_cumul_queue[node_id]:  # self.past_cumul_queue[node_id]
-                current_cumul_queue = self.k.traffic_light.get_cumulative_queue_length(section_id)
-                queue = current_cumul_queue - self.past_cumul_queue[node_id][section_id]
-                self.past_cumul_queue[node_id][section_id] = current_cumul_queue
+        for section_id in self.past_cumul_queue[node_id]:  # self.past_cumul_queue[node_id]
+            current_cumul_queue = self.k.traffic_light.get_cumulative_queue_length(section_id)
+            queue = current_cumul_queue - self.past_cumul_queue[node_id][section_id]
+            self.past_cumul_queue[node_id][section_id] = current_cumul_queue
 
-                r_queue += queue
-            node_reward = ((a0*r_queue) + (a1*gUtil))
+            r_queue += queue
+        node_reward = ((a0*r_queue) + (a1*gUtil))
 
-            reward -= (node_reward ** 2) * 100
+        reward -= (node_reward ** 2) * 100
 
         print(f'{self.k.simulation.time:.0f}', '\t', f'{reward}', '\t', f'{self.current_phase_timings}')
 
