@@ -26,7 +26,7 @@ np.random.seed(1234567890)
 ## read csv of Node Parameters
 ap = Aimsun_Params('/home/cjrsantos/sa_flow/flow/flow/utils/aimsun/aimsun_props.csv')
 
-def rescale_phase_pair(array, NewMin, NewMax):
+def rescale_bar(array, NewMin, NewMax):
     rescaled_action = []
     OldMin = 0
     OldMax = 80
@@ -78,7 +78,7 @@ class SingleLightEnv(Env):
         self.edge_detector_dict = {}
         self.edges_with_detectors = {}
         self.past_cumul_queue = {}
-        self.current_phase_timings = np.zeros(int(len(self.target_nodes)))
+        self.current_phase_timings = []
         #ap_keys = dict.fromkeys(['control_id', 'num_rings', 'green_phases', 'cc_dict', 'sum_interphase', 'max_dict', 'max_p'])
         #self.aimsun_props = {dict.fromkeys(self.target_nodes, ap_keys)}
         self.aimsun_props = {}
@@ -115,12 +115,7 @@ class SingleLightEnv(Env):
             self.aimsun_props[node_id]['num_rings'] = num_rings
             self.aimsun_props[node_id]['max_dict'] = max_dict
             self.aimsun_props[node_id]['max_p'] = max_p      
-
-            for phase in self.green_phases[self.target_nodes[0]]:
-                phase_duration, maxd, mind = self.k.traffic_light.get_duration_phase(node_id, phase)
-                self.current_phase_timings.append(phase_duration)
-                print('initial phase: {} duration: {} max: {} min: {}'.format(phase, phase_duration, maxd, mind))
-          
+        print(self.past_cumul_queue)
         self.ignore_policy = False
 
     @property
@@ -159,7 +154,7 @@ class SingleLightEnv(Env):
         cur_maxdl = max_p[control_id]
         maxd_list = max_dict[cur_maxdl]
 
-        def_actions = np.array(rl_action).flatten()
+        def_actions = np.array(rl_actions).flatten()
         actions = rescale_bar(def_actions,10,90)
 
         barrier = actions[-1]/100
@@ -258,21 +253,22 @@ class SingleLightEnv(Env):
     def compute_reward(self, rl_actions, **kwargs):
         """Computes the sum of queue lengths at all intersections in the network."""
         ## change to util per phase, per node
+        node_id = self.node_id
         reward = 0
         r_queue = 0
-        gUtil = self.k.traffic_light.get_green_util(self.node_id)[0]
+        gUtil = self.k.traffic_light.get_green_util(3344)
         a1 = 1
         a0 = 0.2
 
-        for section_id in self.past_cumul_queue:
+        for section_id in self.past_cumul_queue[node_id]:
             current_cumul_queue = self.k.traffic_light.get_cumulative_queue_length(section_id)
-            queue = current_cumul_queue - self.past_cumul_queue[section_id]
-            self.past_cumul_queue[section_id] = current_cumul_queue
+            queue = current_cumul_queue - self.past_cumul_queue[node_id][section_id]
+            self.past_cumul_queue[node_id][section_id] = current_cumul_queue
 
             r_queue += queue
 
         
-        new_reward = ((a0*r_queue) + (a1*gUtil))
+        new_reward = ((a0*r_queue) + (a1*gUtil[0]))
         reward = - ((new_reward ** 2)*100)
 
         print(self.node_id, f'{self.k.simulation.time:.0f}','\t', f'{reward:.4f}', '\t', f'{self.current_phase_timings}')
@@ -342,8 +338,9 @@ class SingleLightEnv(Env):
         print('-----------------------')
  
         # reset variables
-        for section_id in self.past_cumul_queue:
-            self.past_cumul_queue[section_id] = 0
+        for node_id in self.target_nodes:
+            for section_id in self.past_cumul_queue[node_id]:
+                self.past_cumul_queue[node_id][section_id] = 0
 
         # perform the generic reset function
         observation = super().reset()
