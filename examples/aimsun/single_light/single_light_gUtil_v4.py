@@ -198,6 +198,7 @@ class SingleLightEnv(Env):
         num_edges = ap['num_incoming_edges_per_node']
         num_detectors_types = (ap['num_detector_types'])
         num_measures = (ap['num_measures'])
+        obv_queue = []
         normal = 2000
 
         shape = (num_nodes, num_edges, num_detectors_types, num_measures)
@@ -253,8 +254,6 @@ class SingleLightEnv(Env):
                             det_state[(*index, 1)] = sum(occup)/len(occup)
                         except ZeroDivisionError:
                             det_state[(*index, 1)] = 0
-        
-        state = det_state.flatten()
 
         for node_id in self.observed_nodes:
             node_queue = 0
@@ -265,7 +264,10 @@ class SingleLightEnv(Env):
 
                 node_queue += queue
             
-            state.append(node_queue)
+            obv_queue.append(node_queue)
+
+        f_state = det_state.flatten()
+        state = np.append(f_state, obv_queue)
 
         return state
 
