@@ -5,7 +5,7 @@ import numpy as np
 model = gk.GKSystem.getSystem().getActiveModel()
 global edge_detector_dict
 edge_detector_dict = {}
-length_car = 5  # typical car length
+length_car = 7.3  # typical car length
 
 
 def get_intersection_offset(node_id):
@@ -25,9 +25,12 @@ def get_cumulative_queue_length(section_id):
     catalog = model.getCatalog()
     section = catalog.find(section_id)
     num_lanes = section.getNbLanesAtPos(section.length2D())
-    queue = sum(aapi.AKIEstGetCurrentStatisticsSectionLane(section_id, i, 0).LongQueueAvg for i in range(num_lanes))
+    #queue = sum(aapi.AKIEstGetCurrentStatisticsSectionLane(section_id, i, 0).LongQueueAvg for i in range(num_lanes))
+    queue = sum((aapi.AKIEstGetCurrentStatisticsSectionLane(section_id, i, 0).LongQueueAvg/section.getLaneLength2D(i)) for i in range(num_lanes))
 
-    return queue*length_car/section.length2D()
+    # queue/(Sum(LaneLength_i)/24ft)
+    #return queue*length_car/section.getlength2D() #queue/(section.getLanesLength2D()/length_car)
+    return queue * length_car
 
 
 def set_replication_seed(seed):

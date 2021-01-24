@@ -7,15 +7,15 @@ from flow.networks import Network
 from aimsun_props import Aimsun_Params
 
 ADDITIONAL_ENV_PARAMS = {'target_nodes': [3344],
-                         'observed_nodes': [3329, 3386, 3370, 3372],
+                         # 'observed_nodes': [3386, 3371, 3362, 3373],
                          'num_incoming_edges_per_node': 4,
                          'num_detector_types': 4,
                          'num_measures': 2,
                          'detection_interval': (0, 15, 0),
                          'statistical_interval': (0, 15, 0),
-                         'replication_list': ['Replication 8050297', # 5-11
-                                              'Replication 8050315',  # 10-14
-                                              'Replication 8050322'
+                         'replication_list': ['Replication 8050297' # 5-11
+                                              #'Replication 8050315',  # 10-14
+                                              #'Replication 8050322'
                                             ]}  # 14-21
 # the replication list should be copied in load.py
 
@@ -68,9 +68,7 @@ class SingleLightEnv(Env):
 
         # target intersections
         self.target_nodes = env_params.additional_params["target_nodes"]
-        self.observed_nodes = env_params.additional_params["observed_nodes"]
         self.node_id = self.target_nodes[0]
-        self.rep_name, _ = self.k.traffic_light.get_replication_name(self.node_id)
 
         # reset_offset_durations
         for node_id in self.target_nodes:
@@ -81,20 +79,17 @@ class SingleLightEnv(Env):
         self.edges_with_detectors = {}
         self.past_cumul_queue = {}
         self.current_phase_timings = []
+        #ap_keys = dict.fromkeys(['control_id', 'num_rings', 'green_phases', 'cc_dict', 'sum_interphase', 'max_dict', 'max_p'])
+        #self.aimsun_props = {dict.fromkeys(self.target_nodes, ap_keys)}
         self.aimsun_props = {}
-        # self.obv_sections = {568:3370,22208:3386,400:3329,22211: 3372}
-
-        for node_id in self.observed_nodes:
-            self.past_cumul_queue[node_id] = {}
-            incoming_edges = self.k.traffic_light.get_incoming_edges(node_id)
-            for edge_id in incoming_edges:
-                self.past_cumul_queue[node_id][edge_id] = 0
+        # change to {node_id: {ring:, gp: , cc_dict:, sum_int:, max_dict: , maxp:}}
 
         # get node values
         for node_id in self.target_nodes:
             self.aimsun_props[node_id] = {}
             self.past_cumul_queue[node_id] = {}
             self.edge_detector_dict[node_id] = {}
+            self.rep_name, _ = self.k.traffic_light.get_replication_name(node_id)
             incoming_edges = self.k.traffic_light.get_incoming_edges(node_id)
 
             # get initial detector values
@@ -120,7 +115,7 @@ class SingleLightEnv(Env):
             self.aimsun_props[node_id]['num_rings'] = num_rings
             self.aimsun_props[node_id]['max_dict'] = max_dict
             self.aimsun_props[node_id]['max_p'] = max_p      
-
+        print(self.past_cumul_queue)
         self.ignore_policy = False
 
     @property
@@ -134,7 +129,7 @@ class SingleLightEnv(Env):
         ap = self.additional_params
         shape = ((len(self.target_nodes))*ap['num_incoming_edges_per_node']\
             * (ap['num_detector_types'])*ap['num_measures'])
-        return Box(low=0, high=5, shape=(shape, ), dtype=np.float32)
+        return Box(low=0, high=30, shape=(shape, ), dtype=np.float32)
 
     def _apply_rl_actions(self, rl_actions):
         # Get control_id & replication name every step
@@ -193,24 +188,14 @@ class SingleLightEnv(Env):
         num_edges = ap['num_incoming_edges_per_node']
         num_detectors_types = (ap['num_detector_types'])
         num_measures = (ap['num_measures'])
-        obv_queue = []
         normal = 2000
 
+        #util_per_phase = self.k.traffic_light.get_green_util(self.node_id)
+        #print(util_per_phase)
         shape = (num_nodes, num_edges, num_detectors_types, num_measures)
         det_state = np.zeros(shape)
         for i, (node,edge) in enumerate(self.edge_detector_dict.items()):
             for j, (edge_id, detector_info) in enumerate(edge.items()):
-                # ## get adjacent node and get queue
-                # index = (i,j,4)
-                # adj_queue = 0
-                # node_id = self.obv_sections[edge_id]
-                # for section_id in self.past_cumul_queue[node_id]:
-                #     current_cumul_queue = self.k.traffic_light.get_cumulative_queue_length(edge_id)
-                #     queue = current_cumul_queue - self.past_cumul_queue[node_id][edge_id]
-                #     self.past_cumul_queue[node_id][edge_id] = current_cumul_queue
-
-                #     node_queue += queue
-                # det_state([*index],0) = adj_queue
                 for k, (detector_type, detector_ids) in enumerate(detector_info.items()):
                     if detector_type == 'through':
                         index = (i,j,0)
@@ -268,26 +253,25 @@ class SingleLightEnv(Env):
     def compute_reward(self, rl_actions, **kwargs):
         """Computes the sum of queue lengths at all intersections in the network."""
         ## change to util per phase, per node
+        node_id = self.node_id
         reward = 0
         r_queue = 0
         gUtil = self.k.traffic_light.get_green_util(3344)
-        a0 = 1
-        a1 = 0.2
+        a1 = 1
+        a0 = 0.2
 
-        for node_id in self.target_nodes + self.observed_nodes:
-            for section_id in self.past_cumul_queue[node_id]:
-                current_cumul_queue = self.k.traffic_light.get_cumulative_queue_length(section_id)
-                queue = current_cumul_queue - self.past_cumul_queue[node_id][section_id]
-                self.past_cumul_queue[node_id][section_id] = current_cumul_queue
+        for section_id in self.past_cumul_queue[node_id]:
+            current_cumul_queue = self.k.traffic_light.get_cumulative_queue_length(section_id)
+            queue = current_cumul_queue - self.past_cumul_queue[node_id][section_id]
+            self.past_cumul_queue[node_id][section_id] = current_cumul_queue
 
-                r_queue += queue
-            #print(f'node_id: {node_id} \t queue: {queue}')
+            r_queue += queue
 
-        #print(f'r_queue: {r_queue}')        
-        new_reward = ((a0*r_queue) + (a1*gUtil[0])) # add queue first deg neighbors
+        
+        new_reward = ((a0*r_queue) + (a1*gUtil[0]))
         reward = - ((new_reward ** 2)*100)
 
-        print(self.target_nodes[0], f'{self.k.simulation.time:.0f}','\t', f'{reward:.4f}', '\t', f'{self.current_phase_timings}')
+        print(self.node_id, f'{self.k.simulation.time:.0f}','\t', f'{reward:.4f}', '\t', f'{self.current_phase_timings}')
 
         return reward
 

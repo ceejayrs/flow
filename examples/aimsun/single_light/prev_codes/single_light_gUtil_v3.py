@@ -7,14 +7,14 @@ from flow.networks import Network
 from aimsun_props import Aimsun_Params
 
 ADDITIONAL_ENV_PARAMS = {'target_nodes': [3344],
-                         # 'observed_nodes': [3386, 3371, 3362, 3373],
+                         'observed_nodes': [3329, 3386, 3370],
                          'num_incoming_edges_per_node': 4,
                          'num_detector_types': 4,
                          'num_measures': 2,
                          'detection_interval': (0, 15, 0),
                          'statistical_interval': (0, 15, 0),
-                         'replication_list': ['Replication 8050297', # 5-11
-                                              'Replication 8050315',  # 10-14
+                         'replication_list': [#'Replication 8050297', # 5-11
+                                              #'Replication 8050315'  # 10-14
                                               'Replication 8050322'
                                             ]}  # 14-21
 # the replication list should be copied in load.py
@@ -68,7 +68,9 @@ class SingleLightEnv(Env):
 
         # target intersections
         self.target_nodes = env_params.additional_params["target_nodes"]
+        self.observed_nodes = env_params.additional_params["observed_nodes"]
         self.node_id = self.target_nodes[0]
+        self.rep_name, _ = self.k.traffic_light.get_replication_name(self.node_id)
 
         # reset_offset_durations
         for node_id in self.target_nodes:
@@ -84,12 +86,26 @@ class SingleLightEnv(Env):
         self.aimsun_props = {}
         # change to {node_id: {ring:, gp: , cc_dict:, sum_int:, max_dict: , maxp:}}
 
+        for node_id in self.observed_nodes:
+            self.past_cumul_queue[node_id] = {}
+            self.edge_detector_dict[node_id] = {}
+            incoming_edges = self.k.traffic_light.get_incoming_edges(node_id)
+            for edge_id in incoming_edges:
+                detector_dict = self.k.traffic_light.get_detectors_on_edge(edge_id)
+                through = detector_dict['through']
+                right = detector_dict['right']
+                left = detector_dict['left']
+                advanced = detector_dict['advanced']
+                type_map = {"through": through, "right": right, "left": left, "advanced": advanced}
+
+                self.edge_detector_dict[node_id][edge_id] = type_map
+                self.past_cumul_queue[node_id][edge_id] = 0
+
         # get node values
         for node_id in self.target_nodes:
             self.aimsun_props[node_id] = {}
             self.past_cumul_queue[node_id] = {}
             self.edge_detector_dict[node_id] = {}
-            self.rep_name, _ = self.k.traffic_light.get_replication_name(node_id)
             incoming_edges = self.k.traffic_light.get_incoming_edges(node_id)
 
             # get initial detector values
@@ -115,7 +131,7 @@ class SingleLightEnv(Env):
             self.aimsun_props[node_id]['num_rings'] = num_rings
             self.aimsun_props[node_id]['max_dict'] = max_dict
             self.aimsun_props[node_id]['max_p'] = max_p      
-        print(self.past_cumul_queue)
+
         self.ignore_policy = False
 
     @property
@@ -127,9 +143,9 @@ class SingleLightEnv(Env):
     def observation_space(self):
         """See class definition."""
         ap = self.additional_params
-        shape = ((len(self.target_nodes))*ap['num_incoming_edges_per_node']\
+        shape = ((len(self.target_nodes) + len(self.observed_nodes))*ap['num_incoming_edges_per_node']\
             * (ap['num_detector_types'])*ap['num_measures'])
-        return Box(low=0, high=30, shape=(shape, ), dtype=np.float32)
+        return Box(low=0, high=5, shape=(shape, ), dtype=np.float32)
 
     def _apply_rl_actions(self, rl_actions):
         # Get control_id & replication name every step
@@ -184,14 +200,12 @@ class SingleLightEnv(Env):
 
         ap = self.additional_params
 
-        num_nodes = len(self.target_nodes)
+        num_nodes = len(self.target_nodes) + len(self.observed_nodes)
         num_edges = ap['num_incoming_edges_per_node']
         num_detectors_types = (ap['num_detector_types'])
         num_measures = (ap['num_measures'])
         normal = 2000
 
-        #util_per_phase = self.k.traffic_light.get_green_util(self.node_id)
-        #print(util_per_phase)
         shape = (num_nodes, num_edges, num_detectors_types, num_measures)
         det_state = np.zeros(shape)
         for i, (node,edge) in enumerate(self.edge_detector_dict.items()):

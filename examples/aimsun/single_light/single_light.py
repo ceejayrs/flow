@@ -247,8 +247,8 @@ class SingleLightEnv(Env):
         r_queue = 0
         util_per_phase = self.k.traffic_light.get_green_util(self.node_id)
         gUtil = sum(util_per_phase)
-        a1 = 1
-        a0 = 0.2
+        a0 = 1
+        a1 = 0.2
 
         for section_id in self.past_cumul_queue:
             current_cumul_queue = self.k.traffic_light.get_cumulative_queue_length(section_id)

@@ -8,7 +8,7 @@ from flow.utils.rllib import FlowParamsEncoder
 from flow.utils.registry import make_create_env
 from flow.core.params import AimsunParams, NetParams, VehicleParams, EnvParams, InitialConfig
 
-from single_light_gUtil_v4 import CoordinatedNetwork, SingleLightEnv, ADDITIONAL_ENV_PARAMS
+from single_light_v2 import CoordinatedNetwork, SingleLightEnv, ADDITIONAL_ENV_PARAMS
 
 try:
     from ray.rllib.agents.agent import get_agent_class
@@ -46,7 +46,7 @@ sim_params = AimsunParams(sim_step=SIM_STEP,
 
 
 flow_params = dict(
-    exp_tag="sa_trial3",
+    exp_tag="sa_trial4_change_queuefunction",
     env_name=SingleLightEnv,
     network=CoordinatedNetwork,
     simulator='aimsun',
@@ -123,7 +123,7 @@ if __name__ == "__main__":
             #"restore": '/home/damian/ray_results/single_light_queue/PPO_SingleLightEnv-v0_ab65bf70_2020-08-01_04-58-41d_bnsz2z/checkpoint_96/checkpoint-96',
             # "local_dir": os.path.abspath("./ray_results"),
             "keep_checkpoints_num": 7,
-            "checkpoint_score_attr":"episode_reward_mean"
+            #"checkpoint_score_attr":"episode_reward_mean"
         }
     },
         resume=False)
