@@ -8,7 +8,7 @@ from flow.utils.rllib import FlowParamsEncoder
 from flow.utils.registry import make_create_env
 from flow.core.params import AimsunParams, NetParams, VehicleParams, EnvParams, InitialConfig
 
-from single_light_v3_pm import CoordinatedNetwork, SingleLightEnv, ADDITIONAL_ENV_PARAMS
+from single_light_v3 import CoordinatedNetwork, SingleLightEnv, ADDITIONAL_ENV_PARAMS
 
 try:
     from ray.rllib.agents.agent import get_agent_class
@@ -46,7 +46,7 @@ sim_params = AimsunParams(sim_step=SIM_STEP,
 
 
 flow_params = dict(
-    exp_tag="sa_trial5_change_cp",
+    exp_tag="sa_trial6_change_cp_allperiods",
     env_name=SingleLightEnv,
     network=CoordinatedNetwork,
     simulator='aimsun',
