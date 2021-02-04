@@ -21,6 +21,7 @@ from aimsun_props import Aimsun_Params, Export_Params
 ap = Aimsun_Params('/home/damian/sa_flow/flow/flow/utils/aimsun/aimsun_props.csv')
 ## Export files
 writeFlag = False
+interval = 360 #5 minutes
 
 model = GKSystem.getSystem().getActiveModel()
 PORT = int(model.getAuthor())
@@ -765,7 +766,7 @@ def AAPIManage(time, timeSta, timeTrans, acycle):
     ## compare aimsun_time with flow_time.  flow_time is sim_step*sims_per_step
     # math.isclose(time, 900, a_tol=delta)
     # if math.isclose(time%900, 0, abs_tol=delta) or math.isclose(time%900, 900, abs_tol=delta):
-    if ((time % 900) > -delta and (time % 900) < delta) or ((time % 900) > 900-delta and (time % 900) < 900+delta):
+    if ((time % interval) > -delta and (time % interval) < delta) or ((time % interval) > interval-delta and (time % interval) < interval+delta):
         gp_Util = []
         for node_id in target_nodes:
             gutil = gUtil_at_interval(node_id, time_consumed, occurence, timeSta)

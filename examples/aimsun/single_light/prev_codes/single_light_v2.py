@@ -295,6 +295,7 @@ class SingleLightEnv(Env):
         """See parent class."""
 
         self.time_counter += self.env_params.sims_per_step
+        print(self.time_counter, self.env_params.sims_per_step)
         self.step_counter += self.env_params.sims_per_step
 
         self.apply_rl_actions(rl_actions)

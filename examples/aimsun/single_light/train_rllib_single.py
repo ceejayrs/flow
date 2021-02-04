@@ -8,7 +8,7 @@ from flow.utils.rllib import FlowParamsEncoder
 from flow.utils.registry import make_create_env
 from flow.core.params import AimsunParams, NetParams, VehicleParams, EnvParams, InitialConfig
 
-from single_light_v3 import CoordinatedNetwork, SingleLightEnv, ADDITIONAL_ENV_PARAMS
+from single_light_v4 import CoordinatedNetwork, SingleLightEnv, ADDITIONAL_ENV_PARAMS
 
 try:
     from ray.rllib.agents.agent import get_agent_class
@@ -19,12 +19,12 @@ except ImportError:
 SIM_STEP = 1  # copy to run.py #sync time
 
 # hardcoded to AIMSUN's statistics update interval (5 minutes)
-DETECTOR_STEP = 900  # copy to run.py #Cj: every 15 minutes
+DETECTOR_STEP = 360  # copy to run.py #Cj: every 5 minutes
 
 TIME_HORIZON = 3600*4 - DETECTOR_STEP  # 14400
 HORIZON = int(TIME_HORIZON//SIM_STEP)  # 18000
 
-RLLIB_N_CPUS = 8
+RLLIB_N_CPUS = 1
 RLLIB_HORIZON = int(TIME_HORIZON//DETECTOR_STEP)  # 16
 
 RLLIB_N_ROLLOUTS = 3  # copy to coordinated_lights.py
@@ -34,7 +34,7 @@ net_params = NetParams(template=os.path.abspath("scenario_one_hour_onecyclelengt
 initial_config = InitialConfig()
 vehicles = VehicleParams()
 env_params = EnvParams(horizon=HORIZON,
-                       warmup_steps= int(np.ceil(120/DETECTOR_STEP)), # 1
+                       warmup_steps= int(np.ceil(120/DETECTOR_STEP)*2.5), # 1
                        sims_per_step=int(DETECTOR_STEP/SIM_STEP), # 900
                        additional_params=ADDITIONAL_ENV_PARAMS)
 sim_params = AimsunParams(sim_step=SIM_STEP,
@@ -46,7 +46,7 @@ sim_params = AimsunParams(sim_step=SIM_STEP,
 
 
 flow_params = dict(
-    exp_tag="sa_trial6_change_cp_allperiods",
+    exp_tag="sa_trial7_intervals",
     env_name=SingleLightEnv,
     network=CoordinatedNetwork,
     simulator='aimsun',
