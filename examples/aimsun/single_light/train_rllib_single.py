@@ -19,7 +19,7 @@ except ImportError:
 SIM_STEP = 1  # copy to run.py #sync time
 
 # hardcoded to AIMSUN's statistics update interval (5 minutes)
-DETECTOR_STEP = 360  # copy to run.py #Cj: every 5 minutes
+DETECTOR_STEP = 1080  # copy to run.py #Cj: every 18 minutes
 
 TIME_HORIZON = 3600*4 - DETECTOR_STEP  # 14400
 HORIZON = int(TIME_HORIZON//SIM_STEP)  # 18000
@@ -34,8 +34,8 @@ net_params = NetParams(template=os.path.abspath("scenario_one_hour_onecyclelengt
 initial_config = InitialConfig()
 vehicles = VehicleParams()
 env_params = EnvParams(horizon=HORIZON,
-                       warmup_steps= int(np.ceil(120/DETECTOR_STEP)*2.5), # 1
-                       sims_per_step=int(DETECTOR_STEP/SIM_STEP), # 900
+                       warmup_steps= int(np.ceil(120/DETECTOR_STEP)), # 1
+                       sims_per_step=int(DETECTOR_STEP/SIM_STEP), 
                        additional_params=ADDITIONAL_ENV_PARAMS)
 sim_params = AimsunParams(sim_step=SIM_STEP,
                           render=False,

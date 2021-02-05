@@ -21,7 +21,7 @@ from aimsun_props import Aimsun_Params, Export_Params
 ap = Aimsun_Params('/home/damian/sa_flow/flow/flow/utils/aimsun/aimsun_props.csv')
 ## Export files
 writeFlag = False
-interval = 360 #5 minutes
+interval = 1080 #18 minutes
 
 model = GKSystem.getSystem().getActiveModel()
 PORT = int(model.getAuthor())

@@ -13,9 +13,9 @@ ADDITIONAL_ENV_PARAMS = {'target_nodes': [3344],
                          'num_incoming_edges_per_node': 4,
                          'num_detector_types': 4,
                          'num_measures': 2,
-                         'detection_interval': (0, 6, 0), #6minutes from 15
-                         'statistical_interval': (0, 6, 0), #6 minutes from 15
-                         'action_interval': (0, 18, 0), #every 18 minutes
+                         'detection_interval': (0, 18, 0),
+                         'statistical_interval': (0, 18, 0),
+                         'action_interval': (0, 18 ,0),
                          'replication_list': ['Replication 8050297', # 5-11
                                               'Replication 8050315',  # 10-14
                                               'Replication 8050322'
@@ -63,11 +63,8 @@ class SingleLightEnv(Env):
 
         super().__init__(env_params, sim_params, network, simulator)
         self.additional_params = env_params.additional_params
-        self.step_reward = 0
-        self.reward = 0
 
         self.episode_counter = 0
-        self.action_interval = self.additional_params['action_interval'][1]*60 # 18 minutes
         self.detection_interval = self.additional_params['detection_interval'][1]*60  # assuming minutes for now
         self.k.simulation.set_detection_interval(*self.additional_params['detection_interval'])
         self.k.simulation.set_statistical_interval(*self.additional_params['statistical_interval'])
@@ -291,13 +288,14 @@ class SingleLightEnv(Env):
                 self.past_cumul_queue[node_id][section_id] = current_cumul_queue
 
                 r_queue += queue
-            
-      
+            #print(f'node_id: {node_id} \t queue: {queue}')
+
+        #print(f'r_queue: {r_queue} gutil: {gUtil}')        
         new_reward = ((a0*r_queue) + (a1*gUtil[0])) # add queue first deg neighbors
         reward = - ((new_reward ** 2)*100)
 
-        if self.k.simulation.time % self.action_interval == 0:
-            print(f'{self.target_nodes[0]}\t{self.k.simulation.time:.0f}\t{reward:.4f}\t{self.current_phase_timings}\t{self.bc}')
+        #print(self.target_nodes[0], f'{self.k.simulation.time:.0f}','\t', f'{reward:.4f}', '\t', f'{self.current_phase_timings}')
+        print(f'{self.target_nodes[0]}\t{self.k.simulation.time:.0f}\t{reward:.4f}\t{self.current_phase_timings}\t{self.bc}')
 
         return reward
 
@@ -306,12 +304,8 @@ class SingleLightEnv(Env):
 
         self.time_counter += self.env_params.sims_per_step
         self.step_counter += self.env_params.sims_per_step
-        #print(f'timecounter: {self.time_counter} stepcounter: {self.step_counter} sps: {self.env_params.sims_per_step} warmup: {self.env_params.warmup_steps}')
 
-        if self.step_counter % self.action_interval == 0:
-            #print('Apply action!')
-            self.apply_rl_actions(rl_actions)
-
+        self.apply_rl_actions(rl_actions)
 
         # advance the simulation in the simulator by one step
         self.k.simulation.simulation_step()
@@ -337,14 +331,9 @@ class SingleLightEnv(Env):
         infos = {}
 
         # compute the reward
-        self.step_reward += self.compute_reward(rl_actions)
+        reward = self.compute_reward(rl_actions)
 
-        if self.time_counter % self.action_interval == 0:
-            self.reward = self.step_reward
-            #print(self.reward, self.time_counter, self.step_counter)
-            self.step_reward = 0
-
-        return next_observation, self.reward, done, infos
+        return next_observation, reward, done, infos
 
     def reset(self):
         """See parent class.
@@ -353,7 +342,6 @@ class SingleLightEnv(Env):
         """
         # reset the step counter
         self.step_counter = 0
-        self.reward = 0
 
         if self.episode_counter:
             self.k.simulation.reset_simulation()
@@ -383,7 +371,6 @@ class SingleLightEnv(Env):
 
         # reset the timer to zero
         self.time_counter = 0
-
 
         return observation
 
