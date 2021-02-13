@@ -1,3 +1,4 @@
+import os
 import csv
 import sys
 sys.path.append('/home/damian/anaconda3/envs/aimsun_flow/lib/python2.7/site-packages')
@@ -5,6 +6,7 @@ import numpy as np
 import pandas as pd
 import json
 
+cwd = os.getcwd() #Get current working directory
 class Aimsun_Params:
     
     def __init__(self,my_csv):
@@ -58,9 +60,14 @@ class Aimsun_Params:
         return start_phases
 
 class Export_Params:
-    def __init__(self, rep_name, node_id):
-        self.rep_name = str(rep_name) + '_' + str(node_id) + '.csv'
-        self.fieldnames = ['time', 'node_id', 'delay_time','action']
+    def __init__(self,rep_name, rep_seed):
+        # create folder to store csv files
+        self.csv_dir = os.path.join(cwd, r'csv_files')
+        if not os.path.exists(self.csv_dir):
+            os.mkdir(self.csv_dir)
+            print('Created new directory:{}'.format(self.csv_dir))
+        self.file_name = str(rep_name) + '_'  + str(rep_seed) + '_'
+
 
     def export_delay_action(self, node_id, rep_seed, delay, action_list, util_list, r_queue, time, timeSta):
         time = time
@@ -78,22 +85,81 @@ class Export_Params:
             csv_writer = csv.writer(csvFile)
             csv_writer.writerows([data_list,])
 
+    def export_env_rewards(self, rep_name, rep_seed, d_list):
+        # d_list = [node_id, time, reward, r_queue, gutil]
+        new_dir = os.path.join(self.csv_dir, r'rewards')
+        if not os.path.exists(new_dir):
+            os.makedirs(new_dir)
+            print('Created new directory:{}'.format(new_dir))
 
-##test
-#print(get_green_phases(3344))
-#print('********************')
-#ap = Aimsun_Params('/home/cjrsantos/flow/flow/utils/aimsun/aimsun_props.csv')
-#print(ap.get_cp_cycle_dict(3369,8050315), print(type(ap.get_cp_cycle_dict(3369,8050315))))
-#print('********************')
-#print(get_sum_interphase_per_ring(3344), print(type(get_sum_interphase_per_ring(3344))))
-#print('********************')
-#max_d, max_p = ap.get_max_dict(3344,8050322)
-#target_nodes = [3344,3329,3369]
-#green_phases = dict.fromkeys(target_nodes)
-#starting_phases = dict.fromkeys(target_nodes)
-#
-#for node_id in target_nodes:
-#    green_phase_list = ap.get_green_phases(node_id)
-#    starting_phases_list = ap.get_start_phases(node_id)
-#    starting_phases[node_id] = starting_phases_list
-#print(starting_phases)
+        file_name = new_dir + '/' + str(rep_name) + '_'  + str(rep_seed) + '_' + 'rewards.csv'
+        fieldnames = ['node_id', 'time', 'reward', 'r_queue',' gutil']
+        
+        with open(file_name, 'a') as csvFile:
+            csv_writer = csv.writer(csvFile, fieldnames)
+
+            if csvFile.tell() == 0: # if file doesnt exists write header
+                csv_writer.writerow(fieldnames)
+                print('Created new file: {}'.format(file_name))
+
+            csv_writer.writerows([d_list,])
+
+    def export_sys_data(self, data_list):
+        # sys d_list: [time, flow, tta, dta, sta, sa, density, numstops, volume(count), inflow, incount, missed_turns]
+        new_dir = os.path.join(self.csv_dir, r'sys')
+        if not os.path.exists(new_dir):
+            os.makedirs(new_dir)
+            print('Created new directory:{}'.format(new_dir))
+
+        file_name = new_dir + '/' + self.file_name + 'sys.csv'
+        fieldnames = ['time', 'flow', 'tta', 'dta', 'sta', 'sa', 'density', 'numstops', 'count', 'inflow', 'incount', 'missed_turns']
+        
+        with open(file_name, 'a') as csvFile:
+            csv_writer = csv.writer(csvFile, fieldnames)
+            
+            if csvFile.tell() == 0: # if file doesnt exists write header
+                csv_writer.writerow(fieldnames)
+                print('Created new file: {}'.format(file_name))
+
+            csv_writer.writerows([data_list,])
+
+    #FIXME make input to dictionary
+    def export_node_data(self, node_data_list):
+    # node d_list: [node_id, time, delay, missed_turns, **phase durations] # stat data
+        new_dir = os.path.join(self.csv_dir, r'node')
+        if not os.path.exists(new_dir):
+            os.makedirs(new_dir)
+            print('Created new directory:{}'.format(new_dir))
+
+        directory = '/csv_files/node/'
+        file_name = new_dir +'/' + self.file_name + 'node.csv'
+        fieldnames = ['node_id', 'time', 'delay', 'missed_turns', '1', '3', '5', '7', '9', '11', '13', '15']
+         
+        with open(file_name, 'a') as csvFile:
+            csv_writer = csv.writer(csvFile, fieldnames)
+            
+            if csvFile.tell() == 0: # if file doesnt exists write header
+                csv_writer.writerow(fieldnames)
+                print('Created new file: {}'.format(file_name))
+
+            csv_writer.writerows([node_data_list,])
+            # for node, d_list in node_data_dict.items():
+            #     csv_writer.writerow([node, d_list])
+
+    #TODO section  d_list: [node_id, section_id, time, num_lanes, queue, flow, tta, dta, sta, sa, 
+                    # density, numstops, volume(count), inflow, incount, lq_ave, lq_max]
+    def export_section_data(self, section_data_dict):
+        new_dir = os.path.join(self.csv_dir, r'section')
+        if not os.path.exists(new_dir):
+            os.makedirs(new_dir)
+            print('Created new directory:{}'.format(new_dir))
+
+        file_name = new_dir + '/' + self.file_name + '_' + 'section.csv'
+        fieldnames = ['node_id', 'section_id', 'time', 'num_lanes', 'queue', 'flow', 'tta', 'dta', 'sta', 'sa', 'density', 'numstops', 'count', 'inflow', 'incount', 'lq_ave', 'lq_max']
+ 
+        with open(file_name, 'a') as csvFile:
+            csv_writer = csv.DictWriter(csvFile)
+
+            if csvFile.tell() == 0:
+                csv_writer.writeheader()
+

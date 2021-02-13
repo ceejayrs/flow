@@ -19,11 +19,19 @@ import AAPI as aimsun_api  # noqa
 from aimsun_props import Aimsun_Params, Export_Params
 
 ap = Aimsun_Params('/home/damian/sa_flow/flow/flow/utils/aimsun/aimsun_props.csv')
+interval = 600 #10 minutes
+
 ## Export files
 writeFlag = False
-interval = 1080 #18 minutes
-
 model = GKSystem.getSystem().getActiveModel()
+catalog = model.getCatalog()
+rep_name = aimsun_api.ANGConnGetReplicationId()
+replications = model.getCatalog().getObjectsByType(model.getType("GKReplication"))
+for replication in replications.values():
+    rep_seed = replication.getRandomSeed()
+
+#ep = Export_Params(rep_name, rep_seed)
+
 PORT = int(model.getAuthor())
 entered_vehicles = []
 exited_vehicles = []
@@ -50,10 +58,6 @@ for node_id in target_nodes:
     green_phases[node_id] = green_phase_list
     time_consumed[node_id] = dict.fromkeys(green_phase_list,0)
     occurence[node_id] = dict.fromkeys(green_phase_list,0) # dictionary of node and their phases {node_id:None,...}
-
-if writeFlag == True:
-    rep_name = aimsun_api.ANGConnGetReplicationId()
-    export_params = Export_Params(rep_name, 3344)
 
 def get_duration_phase(node_id, phase, timeSta):
     normalDurationP = aimsun_api.doublep()
@@ -133,6 +137,146 @@ def get_green_time(node_id, time, timeSta):
                     time_consumed[node_id][start_phase] += ut_time[node_id][i]
                     occurence[node_id][start_phase] += 1
 
+def get_incoming_edges(node_id):
+    catalog = model.getCatalog()
+    node = catalog.find(node_id)
+    in_edges = node.getEntranceSections()
+    return [edge.getId() for edge in in_edges]
+
+# Export Functions
+
+def get_stat_data_node(node_id, time, timeSta):
+    """
+        get statistical data of selected node
+        
+        Parameters
+        ---------
+        node id: selected node
+        time, timeSta: Aimsun time parameters
+
+        Return:
+        ---------
+        d_list: [node_id, time, delay, missed_turns, **phase durations]
+        missed_turns: cummulative value 
+    """
+    # d_dict = {}
+    # d_dict[node_id] = {}
+    d_list = []
+    dur_list = []
+    delay = round(aimsun_api.AKIEstGetPartialStatisticsNodeApproachDelay(node_id),4)
+    missed_turns = aimsun_api.AKIEstGetGlobalStatisticsNodeMissedTurns(node_id, 0)
+    for phase in green_phases[node_id]:
+        normalDuration, _, _ = get_duration_phase(node_id, phase, timeSta)
+        dur_list.append(normalDuration)
+    
+    d_list = [node_id, time, delay, missed_turns]
+    d_list = d_list + dur_list
+    return d_list
+
+def get_stat_data_section(node_id, time, timeSta):
+    """
+        get statistical data of sections of the chosen node
+        
+        Parameters
+        ---------
+        node id: selected node
+        time, timeSta: Aimsun time 
+        
+        Return:
+        ---------
+        d_list: [node_id, section_id, time, num_lanes, queue, flow, tta, dta, sta, sa, density, numstops, volume(count), 
+                    inflow, incount, lq_ave, lq_max]
+        
+        Note:
+        node_id: int
+        time: int
+        flow: int (veh/hr)
+        tt: float travel time (seconds/km or seconds/mile) 
+        dt: float delay time (seconds/km or seconds/mile)
+        s: float speed (km/h or mph)
+        numstops: float (#vehs/km or #vehs/mile)
+        count: int volume (vehs)
+        inflow: int veh flow that entered the section (veh/hr)
+        incount: int veh count that entered the section (vehs)
+        missed_turns: float cummulative value
+
+    """
+    # [] Get sections per node
+    d_dict = {}
+    d_dict[node_id] = {}
+    incoming_edges = get_incoming_edges(node_id)
+
+    for section_id in incoming_edges:
+        section = catalog.find(section_id)
+        num_lanes = section.getNbLanesAtPos(section.length2D())
+        queue = sum((aimsun_api.AKIEstGetCurrentStatisticsSectionLane(section_id, i, 0).LongQueueAvg/section.getLaneLength2D(i)) for i in range(num_lanes))
+
+        d_list = [time, num_lanes, queue]
+    # [] Get data per section: delay, turns, etc. 
+        sec_estad = aimsun_api.AKIEstGetParcialStatisticsSection(section_id, timeSta, 0)
+        if (sec_estad.report == 0):
+            sec_list = [sec_estad.Flow,
+                    sec_estad.TTa,
+                    sec_estad.DTa,
+                    sec_estad.STa,
+                    sec_estad.Sa,
+                    sec_estad.Density,
+                    sec_estad.NumStops,
+                    sec_estad.count,
+                    sec_estad.inputFlow,
+                    sec_estad.inputCount,
+                    sec_estad.LongQueueAvg,
+                    sec_estad.LongQueueMax]
+
+        sec_list = [round(x,4) for x in sec_list]
+        d_dict[node_id][section_id] = d_list + sec_list
+    
+    return d_dict
+
+
+def get_stat_data_sys(time, timeSta):
+    """
+        get statistical data of whole network
+        
+        Parameters:
+        ---------
+        time, timeSta: Aimsun time parameters
+        
+        Return:
+        ---------
+        d_list: [time, flow, tta, dta, sta, sa, density, numstops, volume(count), inflow, incount, missed_turns]
+        
+        Note:
+        node_id: int
+        time: int
+        flow: int (veh/hr)
+        tt: float travel time (seconds/km or seconds/mile) 
+        dt: float delay time (seconds/km or seconds/mile)
+        s: float speed (km/h or mph)
+        numstops: float (#vehs/km or #vehs/mile)
+        count: int volume (vehs)
+        inflow: int veh flow that entered the section (veh/hr)
+        incount: int veh count that entered the section (vehs)
+        missed_turns: float cummulative value
+    """
+    d_list = [time]
+    sys_list = []
+    sys_estad = aimsun_api.AKIEstGetParcialStatisticsSystem(timeSta, 0) # 0 for all vehicle types
+    if (sys_estad.report == 0):
+        sys_list = [sys_estad.Flow,
+                    sys_estad.TTa,
+                    sys_estad.DTa,
+                    sys_estad.STa,
+                    sys_estad.Sa,
+                    sys_estad.Density,
+                    sys_estad.NumStops,
+                    sys_estad.count,
+                    sys_estad.inputFlow,
+                    sys_estad.inputCount,
+                    sys_estad.missedTurns]
+
+    sys_list = [round(x,4) for x in sys_list]
+    return d_list + sys_list
 
 def send_message(conn, in_format, values):
     """Send a message to the client.
@@ -761,18 +905,12 @@ def AAPIManage(time, timeSta, timeTrans, acycle):
         get_green_time(node_id, time, timeSta)
 
     delta = 0.8/2
-    # - delta < time%900 < + delta
-    ## TODO: pass sim_step, sims_per_step
-    ## compare aimsun_time with flow_time.  flow_time is sim_step*sims_per_step
-    # math.isclose(time, 900, a_tol=delta)
-    # if math.isclose(time%900, 0, abs_tol=delta) or math.isclose(time%900, 900, abs_tol=delta):
     if ((time % interval) > -delta and (time % interval) < delta) or ((time % interval) > interval-delta and (time % interval) < interval+delta):
         gp_Util = []
         for node_id in target_nodes:
             gutil = gUtil_at_interval(node_id, time_consumed, occurence, timeSta)
             gp_Util.append(gutil)
-        #print(gp_Util)
-        #print(time)
+
         # tcp/ip connection from the aimsun process
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -796,12 +934,21 @@ def AAPIManage(time, timeSta, timeTrans, acycle):
             time_consumed[node_id] = dict.fromkeys(green_phases[node_id],0)
             occurence[node_id] = dict.fromkeys(green_phases[node_id],0) # dictionary of node and their phases {node_id:None,...}
 
-
     return 0
 
 
 def AAPIPostManage(time, timeSta, timeTrans, acycle):
     """Execute commands after an Aimsun simulation step."""
+    if writeFlag == True:
+        # export data to csv
+        my_dict = get_stat_data_node(node_id, time, timeSta)
+        print('node', rep_name, rep_seed, my_dict)
+        #ep.export_node_data(my_dict)
+        #syst_list = get_stat_data_sys(time, timeSta)
+        #ep.export_sys_data(syst_list)
+        #print('sys', rep_name, rep_seed, syst_list)
+        #sect_list = get_stat_data_section(node_id, time, timeSta)
+        #print('sec', rep_name, rep_seed, sect_list)
     return 0
 
 

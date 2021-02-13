@@ -6,16 +6,16 @@ import math
 
 from flow.envs import Env
 from flow.networks import Network
-from aimsun_props import Aimsun_Params
+from aimsun_props import Aimsun_Params, Export_Params
 
 ADDITIONAL_ENV_PARAMS = {'target_nodes': [3344],
                          'observed_nodes': [3329, 3386, 3370, 3372],
                          'num_incoming_edges_per_node': 4,
                          'num_detector_types': 4,
                          'num_measures': 2,
-                         'detection_interval': (0, 18, 0),
-                         'statistical_interval': (0, 18, 0),
-                         'action_interval': (0, 18 ,0),
+                         'detection_interval': (0, 10, 0),
+                         'statistical_interval': (0, 10, 0),
+                         'action_interval': (0, 10, 0),
                          'replication_list': ['Replication 8050297', # 5-11
                                               'Replication 8050315',  # 10-14
                                               'Replication 8050322'
@@ -28,6 +28,9 @@ np.random.seed(1234567890)
 
 ## read csv of Node Parameters
 ap = Aimsun_Params('/home/damian/sa_flow/flow/flow/utils/aimsun/aimsun_props.csv')
+
+## export reward data
+writeFlag = False
 
 def rescale_bar(array, NewMin, NewMax):
     rescaled_action = []
@@ -74,7 +77,9 @@ class SingleLightEnv(Env):
         self.target_nodes = env_params.additional_params["target_nodes"]
         self.observed_nodes = env_params.additional_params["observed_nodes"]
         self.node_id = self.target_nodes[0]
-        self.rep_name, _ = self.k.traffic_light.get_replication_name(self.node_id)
+        self.rep_name, self.rep_seed = self.k.traffic_light.get_replication_name(self.node_id)
+        if writeFlag == True:
+            self.ep = Export_Params(self.rep_name, self.rep_seed)
 
         # reset_offset_durations
         for node_id in self.target_nodes:
@@ -148,7 +153,7 @@ class SingleLightEnv(Env):
             return
         node_id = self.node_id
 
-        self.rep_name, _ = self.k.traffic_light.get_replication_name(3344)
+        self.rep_name, self.rep_seed = self.k.traffic_light.get_replication_name(3344)
 
         #control_id, num_rings = self.k.traffic_light.get_control_ids(node_id)  # self.control_id = list, num_rings = list
         max_dict, max_p = ap.get_max_dict(node_id, self.rep_name)
@@ -288,14 +293,17 @@ class SingleLightEnv(Env):
                 self.past_cumul_queue[node_id][section_id] = current_cumul_queue
 
                 r_queue += queue
-            #print(f'node_id: {node_id} \t queue: {queue}')
 
-        #print(f'r_queue: {r_queue} gutil: {gUtil}')        
         new_reward = ((a0*r_queue) + (a1*gUtil[0])) # add queue first deg neighbors
         reward = - ((new_reward ** 2)*100)
 
         #print(self.target_nodes[0], f'{self.k.simulation.time:.0f}','\t', f'{reward:.4f}', '\t', f'{self.current_phase_timings}')
         print(f'{self.target_nodes[0]}\t{self.k.simulation.time:.0f}\t{reward:.4f}\t{self.current_phase_timings}\t{self.bc}')
+
+        if writeFlag == True:
+            d_list = [self.node_id, self.k.simulation.time, reward, r_queue, gUtil[0]]
+            d_list = [round(x,4) for x in d_list]
+            self.ep.export_env_rewards(self.rep_name, self.rep_seed, d_list)                     
 
         return reward
 
