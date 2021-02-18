@@ -18,7 +18,7 @@ from PyANGKernel import *  # noqa
 import AAPI as aimsun_api  # noqa
 from aimsun_props import Aimsun_Params, Export_Params
 
-ap = Aimsun_Params('/home/damian/sa_flow/flow/flow/utils/aimsun/aimsun_props.csv')
+ap = Aimsun_Params('/home/cjrsantos/sa_flow/flow/flow/utils/aimsun/aimsun_props.csv')
 interval = 600 #10 minutes
 
 ## Export files
@@ -940,15 +940,16 @@ def AAPIManage(time, timeSta, timeTrans, acycle):
 def AAPIPostManage(time, timeSta, timeTrans, acycle):
     """Execute commands after an Aimsun simulation step."""
     if writeFlag == True:
-        # export data to csv
-        my_dict = get_stat_data_node(node_id, time, timeSta)
-        print('node', rep_name, rep_seed, my_dict)
-        #ep.export_node_data(my_dict)
-        #syst_list = get_stat_data_sys(time, timeSta)
-        #ep.export_sys_data(syst_list)
-        #print('sys', rep_name, rep_seed, syst_list)
-        #sect_list = get_stat_data_section(node_id, time, timeSta)
-        #print('sec', rep_name, rep_seed, sect_list)
+        if time % interval == 0:
+            # export data to csv
+            my_dict = get_stat_data_node(node_id, time, timeSta)
+            #print('node', rep_name, rep_seed, my_dict)
+            ep.export_node_data(my_dict)
+            #syst_list = get_stat_data_sys(time, timeSta)
+            #ep.export_sys_data(syst_list)
+            #print('sys', rep_name, rep_seed, syst_list)
+            #sect_list = get_stat_data_section(node_id, time, timeSta)
+            #print('sec', rep_name, rep_seed, sect_list)
     return 0
 
 

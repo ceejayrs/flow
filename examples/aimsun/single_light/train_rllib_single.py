@@ -19,12 +19,12 @@ except ImportError:
 SIM_STEP = 1  # copy to run.py #sync time
 
 # hardcoded to AIMSUN's statistics update interval (5 minutes)
-DETECTOR_STEP = 1080  # copy to run.py #Cj: every 18 minutes
+DETECTOR_STEP = 600  # copy to run.py, environemtn file #Cj: every 18 minutes
 
 TIME_HORIZON = 3600*4 - DETECTOR_STEP  # 14400
 HORIZON = int(TIME_HORIZON//SIM_STEP)  # 18000
 
-RLLIB_N_CPUS = 1
+RLLIB_N_CPUS = 8
 RLLIB_HORIZON = int(TIME_HORIZON//DETECTOR_STEP)  # 16
 
 RLLIB_N_ROLLOUTS = 3  # copy to coordinated_lights.py
@@ -46,7 +46,7 @@ sim_params = AimsunParams(sim_step=SIM_STEP,
 
 
 flow_params = dict(
-    exp_tag="sa_trial7_intervals",
+    exp_tag="sa_trial9_10min_120c_lstm",
     env_name=SingleLightEnv,
     network=CoordinatedNetwork,
     simulator='aimsun',
@@ -79,6 +79,7 @@ def setup_exps(version=0):
     config["train_batch_size"] = RLLIB_HORIZON * RLLIB_N_ROLLOUTS # 16*3
     config["sample_batch_size"] = RLLIB_HORIZON * RLLIB_N_ROLLOUTS
     config["model"].update({"fcnet_hiddens": [64, 64, 64]})
+    config["model"].update({"use_lstm": True})
     config["use_gae"] = True
     config["lambda"] = 0.96
     config["kl_target"] = 0.02
@@ -86,7 +87,7 @@ def setup_exps(version=0):
     config['clip_actions'] = False  # (ev) temporary ray bug
     config["horizon"] = RLLIB_HORIZON  # not same as env horizon.
     config["vf_loss_coeff"] = 1
-    config["vf_clip_param"] = 600
+    #config["vf_clip_param"] =10
     #config["lr"] = 5e-4 #vary, lr
     config["lr_schedule"] = [[0, 5e-3],[50000, 5e-4]]
 
