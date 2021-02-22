@@ -24,7 +24,7 @@ DETECTOR_STEP = 600  # copy to run.py, environemtn file #Cj: every 18 minutes
 TIME_HORIZON = 3600*4 - DETECTOR_STEP  # 14400
 HORIZON = int(TIME_HORIZON//SIM_STEP)  # 18000
 
-RLLIB_N_CPUS = 8
+RLLIB_N_CPUS = 10
 RLLIB_HORIZON = int(TIME_HORIZON//DETECTOR_STEP)  # 16
 
 RLLIB_N_ROLLOUTS = 3  # copy to coordinated_lights.py
@@ -46,7 +46,7 @@ sim_params = AimsunParams(sim_step=SIM_STEP,
 
 
 flow_params = dict(
-    exp_tag="sa_trial9_10min_120c_lstm",
+    exp_tag="sa_trial10_10min_120c_lstm",
     env_name=SingleLightEnv,
     network=CoordinatedNetwork,
     simulator='aimsun',
@@ -76,7 +76,7 @@ def setup_exps(version=0):
     config = agent_cls._default_config.copy()
     config["num_workers"] = RLLIB_N_CPUS
     config["sgd_minibatch_size"] = RLLIB_HORIZON #16 
-    config["train_batch_size"] = RLLIB_HORIZON * RLLIB_N_ROLLOUTS # 16*3
+    config["train_batch_size"] = RLLIB_HORIZON * RLLIB_N_ROLLOUTS * RLLIB_N_CPUS # 16*3
     config["sample_batch_size"] = RLLIB_HORIZON * RLLIB_N_ROLLOUTS
     config["model"].update({"fcnet_hiddens": [64, 64, 64]})
     config["model"].update({"use_lstm": True})
@@ -86,9 +86,9 @@ def setup_exps(version=0):
     config["num_sgd_iter"] = 10
     config['clip_actions'] = False  # (ev) temporary ray bug
     config["horizon"] = RLLIB_HORIZON  # not same as env horizon.
-    config["vf_loss_coeff"] = 1
-    #config["vf_clip_param"] =10
-    #config["lr"] = 5e-4 #vary, lr
+    config["vf_loss_coeff"] = 1e-5 #lstm
+    config['vf_share_layers'] = True #lstm
+    config["vf_clip_param"] =1000
     config["lr_schedule"] = [[0, 5e-3],[50000, 5e-4]]
 
     # save the flow params for replay
