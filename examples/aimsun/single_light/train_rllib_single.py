@@ -46,7 +46,7 @@ sim_params = AimsunParams(sim_step=SIM_STEP,
 
 
 flow_params = dict(
-    exp_tag="sa_trial10_10min_120c_lstm",
+    exp_tag="sa_trial12_10min_120c_lstm_changeentropycoeeff",
     env_name=SingleLightEnv,
     network=CoordinatedNetwork,
     simulator='aimsun',
@@ -86,6 +86,7 @@ def setup_exps(version=0):
     config["num_sgd_iter"] = 10
     config['clip_actions'] = False  # (ev) temporary ray bug
     config["horizon"] = RLLIB_HORIZON  # not same as env horizon.
+    config["entropy_coeff"] = 0.01
     config["vf_loss_coeff"] = 1e-5 #lstm
     config['vf_share_layers'] = True #lstm
     config["vf_clip_param"] =1000
