@@ -46,7 +46,7 @@ sim_params = AimsunParams(sim_step=SIM_STEP,
 
 
 flow_params = dict(
-    exp_tag="sa_trial12_10min_120c_lstm_changeentropycoeeff",
+    exp_tag="sa_trial12_10min_120c_lstm_changecellsize",
     env_name=SingleLightEnv,
     network=CoordinatedNetwork,
     simulator='aimsun',
@@ -77,9 +77,11 @@ def setup_exps(version=0):
     config["num_workers"] = RLLIB_N_CPUS
     config["sgd_minibatch_size"] = RLLIB_HORIZON #16 
     config["train_batch_size"] = RLLIB_HORIZON * RLLIB_N_ROLLOUTS * RLLIB_N_CPUS # 16*3
-    config["sample_batch_size"] = RLLIB_HORIZON * RLLIB_N_ROLLOUTS
+    #config["sample_batch_size"] = RLLIB_HORIZON * RLLIB_N_ROLLOUTS
     config["model"].update({"fcnet_hiddens": [64, 64, 64]})
     config["model"].update({"use_lstm": True})
+    config["model"].update({"lstm_cell_size": [64,64,64]})
+    #config["model"].update({"lstm_use_prev_action_reward": False}),
     config["use_gae"] = True
     config["lambda"] = 0.96
     config["kl_target"] = 0.02
@@ -87,7 +89,7 @@ def setup_exps(version=0):
     config['clip_actions'] = False  # (ev) temporary ray bug
     config["horizon"] = RLLIB_HORIZON  # not same as env horizon.
     config["entropy_coeff"] = 0.01
-    config["vf_loss_coeff"] = 1e-5 #lstm
+    config["vf_loss_coeff"] = 1e-3 #lstm
     config['vf_share_layers'] = True #lstm
     config["vf_clip_param"] =1000
     config["lr_schedule"] = [[0, 5e-3],[50000, 5e-4]]
